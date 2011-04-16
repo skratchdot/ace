@@ -144,6 +144,10 @@ exports.launch = function(env) {
     docs.textile.setMode(new TextileMode());
     docs.textile.setUndoManager(new UndoManager());
 
+    docs.xml = new EditSession(document.getElementById("xmltext").innerHTML);
+    docs.xml.setMode(new XmlMode());
+    docs.xml.setUndoManager(new UndoManager());
+
     var container = document.getElementById("editor");
     env.editor = new Editor(new Renderer(container, theme));
 
