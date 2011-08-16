@@ -1,8 +1,13 @@
 build:
 	mkdir -p build/src
+	mkdir -p build/demo
 	mkdir -p build/textarea/src
-	./Makefile.dryice.js
-	./Makefile.dryice.textarea.js
+	
+	cp demo/styles.css build/demo/styles.css
+	cp demo/logo.png build/demo/logo.png
+	
+	./Makefile.dryice.js normal
+	./Makefile.dryice.js bm
 
 clean:
 	rm -rf build

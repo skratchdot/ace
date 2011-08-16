@@ -39,20 +39,8 @@
 (function() {
 
 var require = window.__ace_shadowed__.require;
-var deps = [
-    "pilot/fixoldbrowsers",
-    "pilot/index",
-    "pilot/plugin_manager",
-    "pilot/environment",
-    "ace/editor",
-    "ace/edit_session",
-    "ace/virtual_renderer",
-    "ace/undomanager",
-    "ace/theme/textmate"
-];
 
-require(deps, function() {
-
+require("pilot/index");
 var catalog = require("pilot/plugin_manager").catalog;
 catalog.registerPlugins([ "pilot/index" ]);
 
@@ -64,6 +52,9 @@ var Editor = require("ace/editor").Editor;
 var EditSession = require("ace/edit_session").EditSession;
 var UndoManager = require("ace/undomanager").UndoManager;
 var Renderer = require("ace/virtual_renderer").VirtualRenderer;
+
+var catalog = require("pilot/plugin_manager").catalog;
+catalog.registerPlugins([ "pilot/index" ]);
 
 window.__ace_shadowed__.edit = function(el) {
     if (typeof(el) == "string") {
@@ -373,6 +364,10 @@ function setupApi(editor, editorDiv, settingDiv, ace, options) {
                 case "showPrintMargin":
                     renderer.setShowPrintMargin(toBool(value));
                 break
+
+                case "showInvisibles":
+                    editor.setShowInvisibles(toBool(value));
+                break;
             }
 
             options[key] = value;
@@ -387,7 +382,7 @@ function setupApi(editor, editorDiv, settingDiv, ace, options) {
         }
     }
 
-    for (option in ace.options) {
+    for (var option in ace.options) {
         ret.setOption(option, ace.options[option]);
     }
 
@@ -407,35 +402,53 @@ function setupSettingPanel(settingDiv, settingOpener, api, options) {
         fontSize:        "Font Size:",
         softWrap:        "Soft Wrap:",
         showPrintMargin: "Show Print Margin:",
-        useSoftTabs:     "Use Soft Tabs:"
+        useSoftTabs:     "Use Soft Tabs:",
+        showInvisibles:  "Show Invisibles"
     }
 
     var optionValues = {
         mode: {
             text:       "Plain",
             javascript: "JavaScript",
-            coffee:     "CoffeeScript",
+            xml:        "XML",
             html:       "HTML",
             css:        "CSS",
-            c_cpp:      "C++",
+            scss:       "SCSS",
+            python:     "Python",
             php:        "PHP",
+            java:       "Java",
             ruby:       "Ruby",
-            python:     "Python"
-
+            c_cpp:      "C/C++",
+            coffee:     "CoffeeScript",
+            json:       "json",
+            perl:       "Perl",
+            clojure:    "Clojure",
+            ocaml:      "OCaml",
+            csharp:     "C#",
+            svg:        "SVG",
+            textile:    "Textile",
+            groovy:     "Groovy",
+            Scala:      "Scala"
         },
         theme: {
-            textmate:         "Textmate",
-            eclipse:          "Eclipse",
             clouds:           "Clouds",
             clouds_midnight:  "Clouds Midnight",
             cobalt:           "Cobalt",
+            crimson_editor:   "Crimson Editor",
             dawn:             "Dawn",
+            eclipse:          "Eclipse",
             idle_fingers:     "Idle Fingers",
             kr_theme:         "Kr Theme",
+            merbivore:        "Merbivore",
+            merbivore_soft:   "Merbivore Soft",
             mono_industrial:  "Mono Industrial",
             monokai:          "Monokai",
             pastel_on_dark:   "Pastel On Dark",
-            twilight:         "Twilight"
+            solarized_dark:   "Solarized Dark",
+            solarized_light:  "Solarized Light",
+            textmate:         "Textmate",
+            twilight:         "Twilight",
+            vibrant_ink:      "Vibrant Ink"
         },
         gutter: BOOL,
         fontSize: {
@@ -451,9 +464,10 @@ function setupSettingPanel(settingDiv, settingOpener, api, options) {
             80:     "80",
             free:   "Free"
         },
-        showPrintMargin: BOOL,
-        useSoftTabs: BOOL
-    }
+        showPrintMargin:    BOOL,
+        useSoftTabs:        BOOL,
+        showInvisibles:     BOOL
+    };
 
     var table = [];
     table.push("<table><tr><th>Setting</th><th>Value</th></tr>");
@@ -511,15 +525,14 @@ function setupSettingPanel(settingDiv, settingOpener, api, options) {
 
 // Default startup options.
 window.__ace_shadowed__.options = {
-    mode:       "text",
-    theme:      "textmate",
-    gutter:     "false",
-    fontSize:   "12px",
-    softWrap:   "off",
-    showPrintMargin: "false",
-    useSoftTabs: "true"
+    mode:               "text",
+    theme:              "textmate",
+    gutter:             "false",
+    fontSize:           "12px",
+    softWrap:           "off",
+    showPrintMargin:    "false",
+    useSoftTabs:        "true",
+    showInvisibles:     "true"
 }
-
-});
 
 })()
