@@ -82,21 +82,19 @@ if (!target) {
 
 console.log("using targetDir '", targetDir, "'");
 
-var copy = require('./support/dryice/lib/dryice').copy;
+var copy = require('dryice').copy;
 
 var aceHome = __dirname;
 
-console.log('# ace ---------');
-
-var aceProject = [
-    aceHome + '/support/pilot/lib',
-    aceHome + '/lib',
-    aceHome
-];
+var aceProject = {
+    roots: [
+        aceHome + '/lib',
+        aceHome + '/demo'
+    ],
+    textPluginPattern: /^ace\/requirejs\/text!/
+}
 
 if (target == "normal") {
-    aceProject.push(aceHome + '/demo');
-
     copy({
         source: "build_support/editor.html",
         dest:   targetDir + '/editor.html'
@@ -135,7 +133,7 @@ copy({
         copy.source.commonjs({
             project: project,
             require: [
-                "pilot/fixoldbrowsers",
+                "ace/lib/fixoldbrowsers",
                 "ace/ace"
             ]
         })
@@ -162,6 +160,8 @@ copy({
 });
 
 if (target == "normal") {
+    console.log('# ace ---------');
+    
     // Create the compressed and uncompressed output files
     copy({
         source: ace,
@@ -173,6 +173,19 @@ if (target == "normal") {
         filter: [filterTextPlugin],
         dest:   targetDir + '/src/ace-uncompressed.js'
     });
+    
+    project.assumeAllFilesLoaded();
+    copy({
+        source: [
+            copy.source.commonjs({
+                project: cloneProject(project),
+                require: [ "pilot/index" ]
+            })
+        ],
+        filter: [copy.filter.uglifyjs, filterTextPlugin],
+        dest:   targetDir + "/src/ace-compat.js"
+    });
+    
 } else if (target == "bm") {
     copy({
         source: ace,
@@ -185,6 +198,7 @@ if (target == "normal") {
     copy({
         source: ace,
         filter: [
+            filterTextPlugin,
             shadow
         ],
         dest:   targetDir + '/src/ace-uncompressed.js'
@@ -210,15 +224,15 @@ console.log('# ace modes ---------');
 
 project.assumeAllFilesLoaded();
 [
-    "css", "html", "javascript", "php", "python", "lua", "xml", "ruby", "java", "c_cpp",
-    "coffee", "perl", "csharp", "svg", "clojure", "scss", "json", "groovy",
-    "ocaml", "scala", "textile", "scad", "markdown", "latex"
+    "css", "html", "javascript", "php", "coldfusion", "python", "lua", "xml", "ruby", "java", "c_cpp",
+    "coffee", "perl", "csharp", "haxe", "svg", "clojure", "scss", "json", "groovy",
+    "ocaml", "scala", "textile", "scad", "markdown", "latex", "powershell", "sql"
 ].forEach(function(mode) {
     console.log("mode " + mode);
     copy({
         source: [
             copy.source.commonjs({
-                project: project.clone(),
+                project: cloneProject(project),
                 require: [ 'ace/mode/' + mode ]
             })
         ],
@@ -230,10 +244,12 @@ project.assumeAllFilesLoaded();
 console.log('# ace themes ---------');
 
 [
-    "clouds", "clouds_midnight", "cobalt", "crimson_editor", "dawn", "eclipse",
+    "chrome", "clouds", "clouds_midnight", "cobalt", "crimson_editor", "dawn", "eclipse",
     "idle_fingers", "kr_theme", "merbivore", "merbivore_soft",
     "mono_industrial", "monokai", "pastel_on_dark", "solarized_dark",
-    "solarized_light", "textmate", "twilight", "vibrant_ink"
+    "solarized_light", "textmate", "tomorrow", "tomorrow_night",
+    "tomorrow_night_blue", "tomorrow_night_bright", "tomorrow_night_eighties",
+    "twilight", "vibrant_ink"
 ].forEach(function(theme) {
     copy({
         source: [{
@@ -270,18 +286,20 @@ console.log('# ace worker ---------');
 ["javascript", "coffee", "css"].forEach(function(mode) {
     console.log("worker for " + mode + " mode");
     var worker = copy.createDataObject();
-    var workerProject = copy.createCommonJsProject([
-        aceHome + '/support/pilot/lib',
-        aceHome + '/lib'
-    ]);
+    var workerProject = copy.createCommonJsProject({
+        roots: [
+            aceHome + '/lib'
+        ],
+        textPluginPattern: /^ace\/requirejs\/text!/
+    });
     copy({
         source: [
             copy.source.commonjs({
                 project: workerProject,
                 require: [
-                    'pilot/fixoldbrowsers',
-                    'pilot/event_emitter',
-                    'pilot/oop',
+                    'ace/lib/fixoldbrowsers',
+                    'ace/lib/event_emitter',
+                    'ace/lib/oop',
                     'ace/mode/' + mode + '_worker'
                 ]
             })
@@ -294,7 +312,7 @@ console.log('# ace worker ---------');
             aceHome + "/lib/ace/worker/worker.js",
             worker
         ],
-        filter: [ copy.filter.uglifyjs, filterTextPlugin ],
+        filter: [ filterTextPlugin/*, copy.filter.uglifyjs*/ ],
         dest: "build/src/worker-" + mode + ".js"
     });
 });
@@ -307,7 +325,7 @@ project.assumeAllFilesLoaded();
     copy({
         source: [
             copy.source.commonjs({
-                project: project.clone(),
+                project: cloneProject(project),
                 require: [ 'ace/keyboard/keybinding/' + keybinding ]
             })
         ],
@@ -346,39 +364,40 @@ function demo() {
         source: [
             copy.source.commonjs({
                 project: project,
-                require: [ "pilot/index", "ace/defaults", "demo/boot" ]
+                require: [ "kitchen-sink/demo" ]
             })
         ],
         filter: [ copy.filter.moduleDefines ],
         dest: demo
     });
     copy({
-        source: {
-            root: project,
-            include: /demo\/docs\/.*$/,
-            exclude: /tests?\//
-        },
-        filter: [ copy.filter.addDefines ],
-        dest: demo
-    });
-    copy({
-        source: {
-            root: project,
-            include: /.*\.css$/,
-            exclude: /tests?\//
-        },
-        filter: [ copy.filter.addDefines ],
-        dest: demo
-    });
-
-    copy({
         source: demo,
         filter: [ filterTextPlugin ],
-        dest: 'build/demo/kitchen-sink-uncompressed.js'
+        dest: 'build/demo/kitchen-sink/kitchen-sink-uncompressed.js'
     });
     copy({
         source: demo,
         filter: [ copy.filter.uglifyjs, filterTextPlugin ],
-        dest: 'build/demo/kitchen-sink.js'
+        dest: 'build/demo/kitchen-sink/kitchen-sink.js'
     });
 }
+
+
+// TODO: replace with project.clone once it is fixed in dryice
+function cloneProject(project) {
+    var clone = copy.createCommonJsProject({
+        roots: project.roots,
+        ignores: project.ignoreRequires
+    });
+
+    Object.keys(project.currentFiles).forEach(function(module) {
+        clone.currentFiles[module] = project.currentFiles[module];
+    });
+
+    Object.keys(project.ignoredFiles).forEach(function(module) {
+        clone.ignoredFiles[module] = project.ignoredFiles[module];
+    });
+
+    return clone;
+};
+

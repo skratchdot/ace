@@ -4,7 +4,7 @@
 .ace_editor {
     position: absolute;
     overflow: hidden;
-    font-family: 'Monaco', 'Menlo', 'Droid Sans Mono', 'Courier New', monospace;
+    font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'Droid Sans Mono', 'Courier New', monospace;
     font-size: 12px;
 }
 
@@ -19,6 +19,13 @@
     box-sizing: border-box;
     -moz-box-sizing: border-box;
     -webkit-box-sizing: border-box;
+    cursor: text;
+}
+
+/* setting pointer-events: auto; on node under the mouse, which changes during scroll,
+  will break mouse wheel scrolling in Safari */
+.ace_content * {
+     pointer-events: none;
 }
 
 .ace_composition {
@@ -33,6 +40,7 @@
     overflow-x: hidden;
     overflow-y: hidden;
     height: 100%;
+    cursor: default;
 }
 
 .ace_gutter-cell.ace_error {
@@ -77,7 +85,7 @@
 
 .ace_editor textarea {
     position: fixed;
-    z-index: -1;
+    z-index: 0;
     width: 10px;
     height: 30px;
     opacity: 0;
@@ -97,6 +105,9 @@
     white-space: nowrap;
     height: 100%;
     width: 100%;
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
 }
 
 .ace_text-layer {
@@ -110,8 +121,6 @@
 
 .ace_cursor-layer {
     z-index: 4;
-    cursor: text;
-    /* setting pointer-events: none; here will break mouse wheel scrolling in Safari */
 }
 
 .ace_cursor {
@@ -125,11 +134,6 @@
 
 .ace_line {
     white-space: nowrap;
-}
-
-.ace_marker-layer {
-    cursor: text;
-    pointer-events: none;
 }
 
 .ace_marker-layer .ace_step {
@@ -162,8 +166,60 @@
 
 .ace_line .ace_fold {
     cursor: pointer;
+    color: darkred;
+    -moz-outline-radius: 4px;
+    outline-radius: 4px;
+    border-radius: 4px;
+    outline: 1px solid #1C00FF;
+    outline-offset: -2px;
+    pointer-events: auto;
 }
 
-.ace_dragging .ace_marker-layer, .ace_dragging .ace_text-layer {
-  cursor: move;
+.ace_dark .ace_fold {
+    color: #E6E1DC;
+    outline-color: #FC6F09;
 }
+
+.ace_fold:hover{
+    background: gold!important;
+}
+
+.ace_dragging .ace_content {
+    cursor: move;
+}
+
+.ace_folding-enabled .ace_gutter-cell {
+    padding-right: 9px!important;
+}
+
+.ace_fold-widget {
+    margin-right: -9px;
+    display: inline-block;
+    height: 9px;
+    width: 9px;
+    background: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJCAYAAADgkQYQAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAEnQAABJ0Ad5mH3gAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCB2My41Ljg3O4BdAAAAbUlEQVQoU2NgoBqIiIibCcRn0tPzbufmlt4uKam+XVXVdLuhoeN2UVHlGSCeCbYsMTHjdlxcSjOyzSB+a2vvbbhYXV2rGsgkoIQvSBBEg0wCiaM4GSQAsg5kAsg6DAUw1SAJkJtwKkBWSFaoAADKrzXSD2pEpgAAAABJRU5ErkJggg==") no-repeat;
+    background-origin: content-box;
+    padding: 1px 0;
+}
+
+.ace_fold-widget.end{
+    transform: scaleY(-1);
+    -moz-transform: scaleY(-1);
+    -webkit-transform: scaleY(-1);
+    opacity:0.8;
+}
+
+.ace_fold-widget.closed{
+    -moz-transform: none;
+    -webkit-transform: none;
+    background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJBAMAAAASvxsjAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAC1QTFRF////fn6FXl5kXl5kWFhecnJ5WFhecnJ5YWFoZ2dubW11dHR7enqCgICIhYWNjO3uwQAAAA90Uk5TACZNg5mZzMzb29vb29vbP7t0EwAAACtJREFUCFtjYAhgAIE6ARB5+SKIPKAD4mxg3ggkF2iB2JMngsQzwGocgBgA2zEHmb0961QAAAAASUVORK5CYII=");
+}
+
+.ace_fold-widget:hover {
+    background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJCAYAAADgkQYQAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAEnQAABJ0Ad5mH3gAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCB2My41Ljg3O4BdAAAASklEQVQoU2NgoBqQWHFlJhD/lzny/TY6BomD5MGWgSQPvPj5H4bXP4GwQeJw1wA5augKoaaqoTgZWSFWBTDVMIUgGq+nCSrApRsAuCZYT+KbmI0AAAAASUVORK5CYII=");
+}
+
+.ace_fold-widget.closed:hover {
+    background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJBAMAAAASvxsjAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAABVQTFRF////HMT3GKjUHMT3GKjUr+T5wOj5rFcpYAAAAAR0Uk5TACaZ2z7RZscAAAAkSURBVAhbY2BQYAABZwEQaWYIIk2TQRyzNBDHDMI2RKgBqQcAaNgD0/oixWYAAAAASUVORK5CYII=");
+}
+

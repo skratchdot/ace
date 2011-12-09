@@ -40,21 +40,14 @@
 
 var require = window.__ace_shadowed__.require;
 
-require("pilot/index");
-var catalog = require("pilot/plugin_manager").catalog;
-catalog.registerPlugins([ "pilot/index" ]);
-
-var Dom = require("pilot/dom");
-var Event = require("pilot/event");
-var UA = require("pilot/useragent")
+var Dom = require("ace/lib/dom");
+var Event = require("ace/lib/event");
+var UA = require("ace/lib/useragent")
 
 var Editor = require("ace/editor").Editor;
 var EditSession = require("ace/edit_session").EditSession;
 var UndoManager = require("ace/undomanager").UndoManager;
 var Renderer = require("ace/virtual_renderer").VirtualRenderer;
-
-var catalog = require("pilot/plugin_manager").catalog;
-catalog.registerPlugins([ "pilot/index" ]);
 
 window.__ace_shadowed__.edit = function(el) {
     if (typeof(el) == "string") {
@@ -68,18 +61,16 @@ window.__ace_shadowed__.edit = function(el) {
     var editor = new Editor(new Renderer(el, "ace/theme/textmate"));
     editor.setSession(doc);
 
-    var env = require("pilot/environment").create();
-    catalog.startupPlugins({ env: env }).then(function() {
-        env.document = doc;
-        env.editor = env;
+    var env = {};
+    env.document = doc;
+    env.editor = env;
+    editor.resize();
+    Event.addListener(window, "resize", function() {
         editor.resize();
-        Event.addListener(window, "resize", function() {
-            editor.resize();
-        });
-        el.env = env;
     });
+    el.env = env;
     return editor;
-}
+};
 
 
 /**
@@ -187,8 +178,8 @@ function setupContainer(element, getValue) {
             var oldSumit = parentNode.onsubmit;
             // Override the onsubmit function of the form.
             parentNode.onsubmit = function(evt) {
-                element.value = getValue();
                 element.innerHTML = getValue();
+                element.value = getValue();
                 // If there is a onsubmit function already, then call
                 // it with the current context and pass the event.
                 if (oldSumit) {
@@ -275,13 +266,13 @@ window.__ace_shadowed__.transformTextarea = function(element) {
     editorDiv.appendChild(settingOpener);
 
     // Create the API.
-    var api = setupApi(editor, editorDiv, settingDiv, ace, options)
+    var api = setupApi(editor, editorDiv, settingDiv, ace, options);
 
     // Create the setting's panel.
     setupSettingPanel(settingDiv, settingOpener, api, options);
 
     return api;
-}
+};
 
 function setupApi(editor, editorDiv, settingDiv, ace, options) {
     var session = editor.getSession();
@@ -425,6 +416,7 @@ function setupSettingPanel(settingDiv, settingOpener, api, options) {
             clojure:    "Clojure",
             ocaml:      "OCaml",
             csharp:     "C#",
+            haxe:       "haXe",
             svg:        "SVG",
             textile:    "Textile",
             groovy:     "Groovy",
