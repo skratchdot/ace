@@ -42,7 +42,9 @@
  */
  
 (function() {
-    
+
+var ACE_NAMESPACE = "";
+
 var global = (function() {
     return this;
 })();
@@ -69,11 +71,6 @@ var _define = function(module, deps, payload) {
         
     _define.modules[module] = payload;
 };
-if (global.define)
-    _define.original = global.define;
-    
-global.define = _define;
-
 
 /**
  * Get at functionality define()ed using the function above
@@ -108,15 +105,6 @@ var _require = function(parentId, module, callback) {
     }
 };
 
-if (global.require)
-    _require.original = global.require;
-    
-global.require = function(module, callback) {
-    return _require("", module, callback);
-};
-
-global.require.packaged = true;
-
 var normalizeModule = function(parentId, moduleName) {
     // normalize plugin requires
     if (moduleName.indexOf("!") !== -1) {
@@ -137,7 +125,6 @@ var normalizeModule = function(parentId, moduleName) {
     return moduleName;
 };
 
-
 /**
  * Internal function to lookup moduleNames and resolve them by calling the
  * definition function if needed.
@@ -156,7 +143,8 @@ var lookup = function(parentId, moduleName) {
         var mod = {
             id: moduleName, 
             uri: '',
-            exports: exports
+            exports: exports,
+            packaged: true
         };
         
         var req = function(module, callback) {
@@ -173,6 +161,32 @@ var lookup = function(parentId, moduleName) {
 
     return module;
 };
+
+function exportAce(ns) {
+    var require = function(module, callback) {
+        return _require("", module, callback);
+    };
+    require.packaged = true;
+    
+    var root = global;
+    if (ns) {
+        if (!global[ns])
+            global[ns] = {};
+        root = global[ns];
+    }
+        
+    if (root.define)
+        _define.original = root.define;
+    
+    root.define = _define;
+
+    if (root.require)
+        _require.original = root.require;
+    
+    root.require = require;
+}
+
+exportAce(ACE_NAMESPACE);
 
 })();/* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
@@ -268,7 +282,7 @@ function loadTheme(name, callback) {
         
     themes[name] = 1;
     var base = name.split("/").pop();
-    var fileName = "src/theme-" + base + ".js";
+    var fileName = "demo/kitchen-sink/theme-" + base + "-uncompressed.js";
     net.loadScript(fileName, callback);
 }
 
@@ -287,7 +301,7 @@ var modes = [
     new Mode("json", "JSON", require("ace/mode/json").Mode, ["json"]),
     new Mode("latex", "LaTeX", require("ace/mode/latex").Mode, ["tex"]),
     new Mode("lua", "Lua", require("ace/mode/lua").Mode, ["lua"]),
-    new Mode("markdown", "MarkDown", require("ace/mode/markdown").Mode, ["md", "markdown"]),
+    new Mode("markdown", "Markdown", require("ace/mode/markdown").Mode, ["md", "markdown"]),
     new Mode("ocaml", "OCaml", require("ace/mode/ocaml").Mode, ["ml", "mli"]),
     new Mode("perl", "Perl", require("ace/mode/perl").Mode, ["pl", "pm"]),
     new Mode("php", "PHP",require("ace/mode/php").Mode, ["php"]),
@@ -526,7 +540,7 @@ bindDropdown("mode", function(value) {
 });
 
 bindDropdown("theme", function(value) {
-    if (window.require.packaged) {
+    if (module.packaged) {
         loadTheme(value, function() {
             env.editor.setTheme(value);
         });
@@ -546,6 +560,7 @@ bindDropdown("fontsize", function(value) {
 
 bindDropdown("folding", function(value) {
     env.editor.getSession().setFoldStyle(value);
+    env.editor.setShowFoldWidgets(value !== "manual");
 });
 
 bindDropdown("soft_wrap", function(value) {
@@ -753,20 +768,24 @@ commands.addCommand({
 */
 
 define('ace/lib/fixoldbrowsers', ['require', 'exports', 'module' , 'ace/lib/regexp', 'ace/lib/es5-shim'], function(require, exports, module) {
+"use strict";
 
 require("./regexp");
 require("./es5-shim");
 
-});define('ace/lib/regexp', ['require', 'exports', 'module' ], function(require, exports, module) {
-
-// Based on code from:
-//
-// XRegExp 1.5.0
-// (c) 2007-2010 Steven Levithan
-// MIT License
-// <http://xregexp.com>
-// Provides an augmented, extensible, cross-browser implementation of regular expressions,
-// including support for additional syntax, flags, and methods
+});/**
+ *  Based on code from:
+ *
+ * XRegExp 1.5.0
+ * (c) 2007-2010 Steven Levithan
+ * MIT License
+ * <http://xregexp.com>
+ * Provides an augmented, extensible, cross-browser implementation of regular expressions,
+ * including support for additional syntax, flags, and methods
+ */
+ 
+define('ace/lib/regexp', ['require', 'exports', 'module' ], function(require, exports, module) {
+"use strict";
 
     //---------------------------------
     //  Private variables
@@ -1921,8 +1940,7 @@ var prepareString = "a"[0] != "a",
         }
         return Object(o);
     };
-});
-/**
+});/**
  * based on code from:
  * 
  * @license RequireJS text 0.25.0 Copyright (c) 2010-2011, The Dojo Foundation All Rights Reserved.
@@ -1930,7 +1948,8 @@ var prepareString = "a"[0] != "a",
  * see: http://github.com/jrburke/requirejs for details
  */
 define('ace/lib/net', ['require', 'exports', 'module' ], function(require, exports, module) {
-    
+"use strict";
+
 exports.get = function (url, callback) {
     var xhr = exports.createXhr();
     xhr.open('GET', url, true);
@@ -2020,6 +2039,7 @@ exports.loadScript = function(path, callback) {
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/lib/event', ['require', 'exports', 'module' , 'ace/lib/keys', 'ace/lib/useragent', 'ace/lib/dom'], function(require, exports, module) {
+"use strict";
 
 var keys = require("./keys");
 var useragent = require("./useragent");
@@ -2362,6 +2382,7 @@ For more information about SproutCore, visit http://www.sproutcore.com
 // Most of the following code is taken from SproutCore with a few changes.
 
 define('ace/lib/keys', ['require', 'exports', 'module' , 'ace/lib/oop'], function(require, exports, module) {
+"use strict";
 
 var oop = require("./oop");
 
@@ -2493,6 +2514,7 @@ exports.keyCodeToString = function(keyCode) {
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/lib/oop', ['require', 'exports', 'module' ], function(require, exports, module) {
+"use strict";
 
 exports.inherits = (function() {
     var tempCtor = function() {};
@@ -2501,7 +2523,7 @@ exports.inherits = (function() {
         ctor.super_ = superCtor.prototype;
         ctor.prototype = new tempCtor();
         ctor.prototype.constructor = ctor;
-    }
+    };
 }());
 
 exports.mixin = function(obj, mixin) {
@@ -2553,10 +2575,10 @@ exports.implement = function(proto, mixin) {
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/lib/useragent', ['require', 'exports', 'module' ], function(require, exports, module) {
+"use strict";
 
 var os = (navigator.platform.match(/mac|win|linux/i) || ["other"])[0].toLowerCase();
 var ua = navigator.userAgent;
-var av = navigator.appVersion;
 
 /** Is the user using a browser that identifies itself as Windows */
 exports.isWin = (os == "win");
@@ -2577,7 +2599,7 @@ exports.isOldIE = exports.isIE && exports.isIE < 9;
 exports.isGecko = exports.isMozilla = window.controllers && window.navigator.product === "Gecko";
 
 /** oldGecko == rev < 2.0 **/
-exports.isOldGecko = exports.isGecko && parseInt((navigator.userAgent.match(/rv\:(\d+)/)||[])[1]) < 4;
+exports.isOldGecko = exports.isGecko && parseInt((navigator.userAgent.match(/rv\:(\d+)/)||[])[1], 10) < 4;
 
 /** Is this Opera */
 exports.isOpera = window.opera && Object.prototype.toString.call(window.opera) == "[object Opera]";
@@ -2601,9 +2623,9 @@ exports.isTouchPad = ua.indexOf("TouchPad") >= 0;
  * Windows folks expect to use CTRL + C
  */
 exports.OS = {
-    LINUX: 'LINUX',
-    MAC: 'MAC',
-    WINDOWS: 'WINDOWS'
+    LINUX: "LINUX",
+    MAC: "MAC",
+    WINDOWS: "WINDOWS"
 };
 
 /**
@@ -2611,11 +2633,11 @@ exports.OS = {
  */
 exports.getOS = function() {
     if (exports.isMac) {
-        return exports.OS['MAC'];
+        return exports.OS.MAC;
     } else if (exports.isLinux) {
-        return exports.OS['LINUX'];
+        return exports.OS.LINUX;
     } else {
-        return exports.OS['WINDOWS'];
+        return exports.OS.WINDOWS;
     }
 };
 
@@ -2661,6 +2683,7 @@ exports.getOS = function() {
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/lib/dom', ['require', 'exports', 'module' ], function(require, exports, module) {
+"use strict";
 
 var XHTML_NS = "http://www.w3.org/1999/xhtml";
 
@@ -2679,69 +2702,51 @@ exports.setText = function(elem, text) {
     }
 };
 
-if (!document.documentElement.classList) {
-    exports.hasCssClass = function(el, name) {
-        var classes = el.className.split(/\s+/g);
-        return classes.indexOf(name) !== -1;
-    };
+exports.hasCssClass = function(el, name) {
+    var classes = el.className.split(/\s+/g);
+    return classes.indexOf(name) !== -1;
+};
 
-    /**
-    * Add a CSS class to the list of classes on the given node
-    */
-    exports.addCssClass = function(el, name) {
-        if (!exports.hasCssClass(el, name)) {
-            el.className += " " + name;
+/**
+* Add a CSS class to the list of classes on the given node
+*/
+exports.addCssClass = function(el, name) {
+    if (!exports.hasCssClass(el, name)) {
+        el.className += " " + name;
+    }
+};
+
+/**
+* Remove a CSS class from the list of classes on the given node
+*/
+exports.removeCssClass = function(el, name) {
+    var classes = el.className.split(/\s+/g);
+    while (true) {
+        var index = classes.indexOf(name);
+        if (index == -1) {
+            break;
         }
-    };
+        classes.splice(index, 1);
+    }
+    el.className = classes.join(" ");
+};
 
-    /**
-    * Remove a CSS class from the list of classes on the given node
-    */
-    exports.removeCssClass = function(el, name) {
-        var classes = el.className.split(/\s+/g);
-        while (true) {
-            var index = classes.indexOf(name);
-            if (index == -1) {
-                break;
-            }
-            classes.splice(index, 1);
+exports.toggleCssClass = function(el, name) {
+    var classes = el.className.split(/\s+/g), add = true;
+    while (true) {
+        var index = classes.indexOf(name);
+        if (index == -1) {
+            break;
         }
-        el.className = classes.join(" ");
-    };
+        add = false;
+        classes.splice(index, 1);
+    }
+    if(add)
+        classes.push(name);
 
-    exports.toggleCssClass = function(el, name) {
-        var classes = el.className.split(/\s+/g), add = true;
-        while (true) {
-            var index = classes.indexOf(name);
-            if (index == -1) {
-                break;
-            }
-            add = false;
-            classes.splice(index, 1);
-        }
-        if(add)
-            classes.push(name);
-
-        el.className = classes.join(" ");
-        return add;
-    };
-} else {
-    exports.hasCssClass = function(el, name) {
-        return el.classList.contains(name);
-    };
-
-    exports.addCssClass = function(el, name) {
-        el.classList.add(name);
-    };
-
-    exports.removeCssClass = function(el, name) {
-        el.classList.remove(name);
-    };
-
-    exports.toggleCssClass = function(el, name) {
-        return el.classList.toggle(name);
-    };
-}
+    el.className = classes.join(" ");
+    return add;
+};
 
 /**
  * Add or remove a CSS class from the list of classes on the given node
@@ -2784,9 +2789,9 @@ exports.importCssString = function importCssString(cssText, id, doc) {
         if (id)
             style.title = id;
     } else {
-        style = doc.createElementNS ?
-                    doc.createElementNS(XHTML_NS, "style") :
-                    doc.createElement("style");
+        style = doc.createElementNS
+            ? doc.createElementNS(XHTML_NS, "style")
+            : doc.createElement("style");
 
         style.appendChild(doc.createTextNode(cssText));
         if (id)
@@ -2967,6 +2972,8 @@ exports.getParentWindow = function(document) {
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/theme/textmate', ['require', 'exports', 'module' , 'ace/lib/dom'], function(require, exports, module) {
+"use strict";
+
 exports.isDark = false;
 exports.cssClass = "ace-tm";
 exports.cssText = ".ace-tm .ace_editor {\
@@ -2978,24 +2985,17 @@ exports.cssText = ".ace-tm .ace_editor {\
 }\
 \
 .ace-tm .ace_gutter {\
-  width: 50px;\
   background: #e8e8e8;\
   color: #333;\
-  overflow : hidden;\
-}\
-\
-.ace-tm .ace_gutter-layer {\
-  width: 100%;\
-  text-align: right;\
-}\
-\
-.ace-tm .ace_gutter-layer .ace_gutter-cell {\
-  padding-right: 6px;\
 }\
 \
 .ace-tm .ace_print_margin {\
   width: 1px;\
   background: #e8e8e8;\
+}\
+\
+.ace-tm .ace_fold {\
+    background-color: #0000A2;\
 }\
 \
 .ace-tm .ace_text-layer {\
@@ -3034,10 +3034,6 @@ exports.cssText = ".ace-tm .ace_editor {\
 .ace-tm .ace_line .ace_invalid {\
   background-color: rgb(153, 0, 0);\
   color: white;\
-}\
-\
-.ace-tm .ace_line .ace_fold {\
-    outline-color: #1C00FF;\
 }\
 \
 .ace-tm .ace_line .ace_support.ace_function {\
@@ -3135,8 +3131,8 @@ exports.cssText = ".ace-tm .ace_editor {\
   color: rgb(255, 0, 0)\
 }";
 
-    var dom = require("../lib/dom");
-    dom.importCssString(exports.cssText);
+var dom = require("../lib/dom");
+dom.importCssString(exports.cssText, exports.cssClass);
 });
 /* vim:ts=4:sts=4:sw=4:
  * ***** BEGIN LICENSE BLOCK *****
@@ -3179,6 +3175,7 @@ exports.cssText = ".ace-tm .ace_editor {\
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/edit_session', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/lib/event_emitter', 'ace/selection', 'ace/mode/text', 'ace/range', 'ace/document', 'ace/background_tokenizer', 'ace/edit_session/folding', 'ace/edit_session/bracket_match'], function(require, exports, module) {
+"use strict";
 
 var oop = require("./lib/oop");
 var lang = require("./lib/lang");
@@ -3282,7 +3279,7 @@ var EditSession = function(text, mode) {
         }
 
         this.bgTokenizer.start(delta.range.start.row);
-        this._dispatchEvent("change", e);
+        this._emit("change", e);
     };
 
     this.setValue = function(text) {
@@ -3415,7 +3412,7 @@ var EditSession = function(text, mode) {
 
         this.$modified = true;
         this.$tabSize = tabSize;
-        this._dispatchEvent("changeTabSize");
+        this._emit("changeTabSize");
     };
 
     this.getTabSize = function() {
@@ -3431,7 +3428,7 @@ var EditSession = function(text, mode) {
         if (this.$overwrite == overwrite) return;
 
         this.$overwrite = overwrite;
-        this._dispatchEvent("changeOverwrite");
+        this._emit("changeOverwrite");
     };
 
     this.getOverwrite = function() {
@@ -3451,22 +3448,22 @@ var EditSession = function(text, mode) {
         for (var i=0; i<rows.length; i++) {
             this.$breakpoints[rows[i]] = true;
         }
-        this._dispatchEvent("changeBreakpoint", {});
+        this._emit("changeBreakpoint", {});
     };
 
     this.clearBreakpoints = function() {
         this.$breakpoints = [];
-        this._dispatchEvent("changeBreakpoint", {});
+        this._emit("changeBreakpoint", {});
     };
 
     this.setBreakpoint = function(row) {
         this.$breakpoints[row] = true;
-        this._dispatchEvent("changeBreakpoint", {});
+        this._emit("changeBreakpoint", {});
     };
 
     this.clearBreakpoint = function(row) {
         delete this.$breakpoints[row];
-        this._dispatchEvent("changeBreakpoint", {});
+        this._emit("changeBreakpoint", {});
     };
 
     this.getBreakpoints = function() {
@@ -3486,10 +3483,10 @@ var EditSession = function(text, mode) {
 
         if (inFront) {
             this.$frontMarkers[id] = marker;
-            this._dispatchEvent("changeFrontMarker")
+            this._emit("changeFrontMarker")
         } else {
             this.$backMarkers[id] = marker;
-            this._dispatchEvent("changeBackMarker")
+            this._emit("changeBackMarker")
         }
 
         return id;
@@ -3503,7 +3500,7 @@ var EditSession = function(text, mode) {
         var markers = marker.inFront ? this.$frontMarkers : this.$backMarkers;
         if (marker) {
             delete (markers[markerId]);
-            this._dispatchEvent(marker.inFront ? "changeFrontMarker" : "changeBackMarker");
+            this._emit(marker.inFront ? "changeFrontMarker" : "changeBackMarker");
         }
     };
 
@@ -3530,7 +3527,7 @@ var EditSession = function(text, mode) {
             else
                 this.$annotations[row] = [annotation];
         }
-        this._dispatchEvent("changeAnnotation", {});
+        this._emit("changeAnnotation", {});
     };
 
     this.getAnnotations = function() {
@@ -3539,7 +3536,7 @@ var EditSession = function(text, mode) {
 
     this.clearAnnotations = function() {
         this.$annotations = {};
-        this._dispatchEvent("changeAnnotation", {});
+        this._emit("changeAnnotation", {});
     };
 
     this.$detectNewLine = function(text) {
@@ -3620,7 +3617,7 @@ var EditSession = function(text, mode) {
     this.onReloadTokenizer = function(e) {
         var rows = e.data;
         this.bgTokenizer.start(rows.first);
-        this._dispatchEvent("tokenizerUpdate", e);
+        this._emit("tokenizerUpdate", e);
     };
 
     this.$mode = null;
@@ -3644,7 +3641,7 @@ var EditSession = function(text, mode) {
             this.bgTokenizer = new BackgroundTokenizer(tokenizer);
             var _self = this;
             this.bgTokenizer.addEventListener("update", function(e) {
-                _self._dispatchEvent("tokenizerUpdate", e);
+                _self._emit("tokenizerUpdate", e);
             });
         } else {
             this.bgTokenizer.setTokenizer(tokenizer);
@@ -3658,7 +3655,7 @@ var EditSession = function(text, mode) {
 
         this.$setFolding(mode.foldingRules);
 
-        this._dispatchEvent("changeMode");
+        this._emit("changeMode");
     };
 
     this.$stopWorker = function() {
@@ -3691,7 +3688,7 @@ var EditSession = function(text, mode) {
         if (this.$scrollTop === scrollTopRow) return;
 
         this.$scrollTop = scrollTopRow;
-        this._dispatchEvent("changeScrollTop");
+        this._emit("changeScrollTop");
     };
 
     this.getScrollTopRow = function() {
@@ -4060,7 +4057,7 @@ var EditSession = function(text, mode) {
                 this.$updateWrapData(0, len - 1);
             }
 
-            this._dispatchEvent("changeWrapMode");
+            this._emit("changeWrapMode");
         }
     };
 
@@ -4078,7 +4075,7 @@ var EditSession = function(text, mode) {
             this.$wrapLimitRange.max = max;
             this.$modified = true;
             // This will force a recalculation of the wrap limit
-            this._dispatchEvent("changeWrapMode");
+            this._emit("changeWrapMode");
         }
     };
 
@@ -4092,7 +4089,7 @@ var EditSession = function(text, mode) {
             if (this.$useWrapMode) {
                 this.$updateWrapData(0, this.getLength() - 1);
                 this.$resetRowCache(0)
-                this._dispatchEvent("changeWrapLimit");
+                this._emit("changeWrapLimit");
             }
             return true;
         }
@@ -4874,6 +4871,7 @@ exports.EditSession = EditSession;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/lib/lang', ['require', 'exports', 'module' ], function(require, exports, module) {
+"use strict";
 
 exports.stringReverse = function(string) {
     return string.split("").reverse().join("");
@@ -5026,6 +5024,7 @@ exports.deferredCall = function(fcn) {
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/lib/event_emitter', ['require', 'exports', 'module' ], function(require, exports, module) {
+"use strict";
 
 var EventEmitter = {};
 
@@ -5143,6 +5142,7 @@ exports.EventEmitter = EventEmitter;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/selection', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/lib/event_emitter', 'ace/range'], function(require, exports, module) {
+"use strict";
 
 var oop = require("./lib/oop");
 var lang = require("./lib/lang");
@@ -5166,16 +5166,16 @@ var Selection = function(session) {
 
     var _self = this;
     this.selectionLead.on("change", function(e) {
-        _self._dispatchEvent("changeCursor");
+        _self._emit("changeCursor");
         if (!_self.$isEmpty)
-            _self._dispatchEvent("changeSelection");
+            _self._emit("changeSelection");
         if (!_self.$preventUpdateDesiredColumnOnChange && e.old.column != e.value.column)
             _self.$updateDesiredColumn();
     });
 
     this.selectionAnchor.on("change", function() {
         if (!_self.$isEmpty)
-            _self._dispatchEvent("changeSelection");
+            _self._emit("changeSelection");
     });
 };
 
@@ -5207,7 +5207,7 @@ var Selection = function(session) {
 
         if (this.$isEmpty) {
             this.$isEmpty = false;
-            this._dispatchEvent("changeSelection");
+            this._emit("changeSelection");
         }
     };
 
@@ -5267,7 +5267,7 @@ var Selection = function(session) {
     this.clearSelection = function() {
         if (!this.$isEmpty) {
             this.$isEmpty = true;
-            this._dispatchEvent("changeSelection");
+            this._emit("changeSelection");
         }
     };
 
@@ -5651,6 +5651,7 @@ exports.Selection = Selection;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/range', ['require', 'exports', 'module' ], function(require, exports, module) {
+"use strict";
 
 var Range = function(startRow, startColumn, endRow, endColumn) {
     this.start = {
@@ -5971,6 +5972,7 @@ exports.Range = Range;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/text', ['require', 'exports', 'module' , 'ace/tokenizer', 'ace/mode/text_highlight_rules', 'ace/mode/behaviour', 'ace/unicode'], function(require, exports, module) {
+"use strict";
 
 var Tokenizer = require("../tokenizer").Tokenizer;
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
@@ -6188,6 +6190,7 @@ exports.Mode = Mode;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/tokenizer', ['require', 'exports', 'module' ], function(require, exports, module) {
+"use strict";
 
 var Tokenizer = function(rules, flag) {
     flag = flag ? "g" + flag : "g";
@@ -6354,6 +6357,7 @@ exports.Tokenizer = Tokenizer;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/text_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/lang'], function(require, exports, module) {
+"use strict";
 
 var lang = require("../lib/lang");
 
@@ -6465,6 +6469,7 @@ exports.TextHighlightRules = TextHighlightRules;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/behaviour', ['require', 'exports', 'module' ], function(require, exports, module) {
+"use strict";
 
 var Behaviour = function() {
    this.$behaviours = {};
@@ -6523,6 +6528,7 @@ var Behaviour = function() {
 
 exports.Behaviour = Behaviour;
 });define('ace/unicode', ['require', 'exports', 'module' ], function(require, exports, module) {
+"use strict";
 
 /*
 XRegExp Unicode plugin pack: Categories 1.0
@@ -6665,6 +6671,7 @@ function addUnicodePackage (pack) {
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/document', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/event_emitter', 'ace/range', 'ace/anchor'], function(require, exports, module) {
+"use strict";
 
 var oop = require("./lib/oop");
 var EventEmitter = require("./lib/event_emitter").EventEmitter;
@@ -6836,7 +6843,7 @@ var Document = function(text) {
             range: range,
             lines: lines
         };
-        this._dispatchEvent("change", { data: delta });
+        this._emit("change", { data: delta });
         return range.end;
     };
 
@@ -6857,7 +6864,7 @@ var Document = function(text) {
             range: Range.fromPoints(position, end),
             text: this.getNewLineCharacter()
         };
-        this._dispatchEvent("change", { data: delta });
+        this._emit("change", { data: delta });
 
         return end;
     };
@@ -6881,7 +6888,7 @@ var Document = function(text) {
             range: Range.fromPoints(position, end),
             text: text
         };
-        this._dispatchEvent("change", { data: delta });
+        this._emit("change", { data: delta });
 
         return end;
     };
@@ -6933,7 +6940,7 @@ var Document = function(text) {
             range: range,
             text: removed
         };
-        this._dispatchEvent("change", { data: delta });
+        this._emit("change", { data: delta });
         return range.start;
     };
 
@@ -6954,7 +6961,7 @@ var Document = function(text) {
             nl: this.getNewLineCharacter(),
             lines: removed
         };
-        this._dispatchEvent("change", { data: delta });
+        this._emit("change", { data: delta });
         return removed;
     };
 
@@ -6972,7 +6979,7 @@ var Document = function(text) {
             range: range,
             text: this.getNewLineCharacter()
         };
-        this._dispatchEvent("change", { data: delta });
+        this._emit("change", { data: delta });
     };
 
     this.replace = function(range, text) {
@@ -7070,6 +7077,7 @@ exports.Document = Document;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/anchor', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/event_emitter'], function(require, exports, module) {
+"use strict";
 
 var oop = require("./lib/oop");
 var EventEmitter = require("./lib/event_emitter").EventEmitter;
@@ -7189,7 +7197,7 @@ var Anchor = exports.Anchor = function(doc, row, column) {
         
         this.row = pos.row;
         this.column = pos.column;
-        this._dispatchEvent("change", {
+        this._emit("change", {
             old: old,
             value: pos
         });
@@ -7262,6 +7270,7 @@ var Anchor = exports.Anchor = function(doc, row, column) {
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/background_tokenizer', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/event_emitter'], function(require, exports, module) {
+"use strict";
 
 var oop = require("./lib/oop");
 var EventEmitter = require("./lib/event_emitter").EventEmitter;
@@ -7326,7 +7335,7 @@ var BackgroundTokenizer = function(tokenizer, editor) {
             first: firstRow,
             last: lastRow
         };
-        this._dispatchEvent("update", {data: data});
+        this._emit("update", {data: data});
     };
 
     this.start = function(startRow) {
@@ -7356,8 +7365,8 @@ var BackgroundTokenizer = function(tokenizer, editor) {
     };
 
     this.$tokenizeRows = function(firstRow, lastRow) {
-        if (!this.doc)
-            return [];
+        if (!this.doc || isNaN(firstRow) || isNaN(lastRow))
+            return [{'state':'start','tokens':[]}];
             
         var rows = [];
 
@@ -7438,6 +7447,7 @@ exports.BackgroundTokenizer = BackgroundTokenizer;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/edit_session/folding', ['require', 'exports', 'module' , 'ace/range', 'ace/edit_session/fold_line', 'ace/edit_session/fold', 'ace/token_iterator'], function(require, exports, module) {
+"use strict";
 
 var Range = require("../range").Range;
 var FoldLine = require("./fold_line").FoldLine;
@@ -7743,7 +7753,7 @@ function Folding() {
 
         // Notify that fold data has changed.
         this.$modified = true;
-        this._dispatchEvent("changeFold", { data: fold });
+        this._emit("changeFold", { data: fold });
 
         return fold;
     };
@@ -7759,8 +7769,8 @@ function Folding() {
         var startRow = foldLine.start.row;
         var endRow = foldLine.end.row;
 
-        var foldLines = this.$foldData,
-            folds = foldLine.folds;
+        var foldLines = this.$foldData;
+        var folds = foldLine.folds;
         // Simple case where there is only one fold in the FoldLine such that
         // the entire fold line can get removed directly.
         if (folds.length == 1) {
@@ -7801,7 +7811,7 @@ function Folding() {
 
         // Notify that fold data has changed.
         this.$modified = true;
-        this._dispatchEvent("changeFold", { data: fold });
+        this._emit("changeFold", { data: fold });
     };
 
     this.removeFolds = function(folds) {
@@ -7868,8 +7878,8 @@ function Folding() {
     this.getRowFoldEnd = function(docRow, startFoldRow) {
         var foldLine = this.getFoldLine(docRow, startFoldRow);
         return (foldLine
-                    ? foldLine.end.row
-                    : docRow)
+            ? foldLine.end.row
+            : docRow);
     };
 
     this.getFoldDisplayLine = function(foldLine, endRow, endColumn, startRow, startColumn) {
@@ -7887,7 +7897,7 @@ function Folding() {
         var doc = this.doc;
         var textLine = "";
 
-        foldLine.walk(function(placeholder, row, column, lastColumn, isNewRow) {
+        foldLine.walk(function(placeholder, row, column, lastColumn) {
             if (row < startRow) {
                 return;
             } else if (row == startRow) {
@@ -7933,31 +7943,36 @@ function Folding() {
     this.toggleFold = function(tryToUnfold) {
         var selection = this.selection;
         var range = selection.getRange();
+        var fold;
+        var bracketPos;
 
         if (range.isEmpty()) {
             var cursor = range.start;
-            var fold = this.getFoldAt(cursor.row, cursor.column);
-            var bracketPos;
+            fold = this.getFoldAt(cursor.row, cursor.column);
 
             if (fold) {
                 this.expandFold(fold);
                 return;
-            } else if (bracketPos = this.findMatchingBracket(cursor)) {
+            }
+            else if (bracketPos = this.findMatchingBracket(cursor)) {
                 if (range.comparePoint(bracketPos) == 1) {
                     range.end = bracketPos;
-                } else {
+                } 
+                else {
                     range.start = bracketPos;
                     range.start.column++;
                     range.end.column--;
                 }
-            } else if (bracketPos = this.findMatchingBracket({row: cursor.row, column: cursor.column + 1})) {
+            }
+            else if (bracketPos = this.findMatchingBracket({row: cursor.row, column: cursor.column + 1})) {
                 if (range.comparePoint(bracketPos) == 1)
                     range.end = bracketPos;
                 else
                     range.start = bracketPos;
 
                 range.start.column++;
-            } else {
+            }
+            else {
                 range = this.getCommentFoldRange(cursor.row, cursor.column) || range;
             }
         } else {
@@ -7965,7 +7980,8 @@ function Folding() {
             if (tryToUnfold && folds.length) {
                 this.expandFolds(folds);
                 return;
-            } else if (folds.length == 1 ) {
+            } 
+            else if (folds.length == 1 ) {
                 fold = folds[0];
             }
         }
@@ -7973,7 +7989,7 @@ function Folding() {
         if (!fold)
             fold = this.getFoldAt(range.start.row, range.start.column);
 
-        if (fold && fold.range.toString() == range.toString()){
+        if (fold && fold.range.toString() == range.toString()) {
             this.expandFold(fold);
             return;
         }
@@ -8012,7 +8028,7 @@ function Folding() {
             token = iterator.stepBackward();
 
             range.end.row = iterator.getCurrentTokenRow();
-            range.end.column = iterator.getCurrentTokenColumn() + token.value.length - 1;
+            range.end.column = iterator.getCurrentTokenColumn() + token.value.length;
             return range;
         }
     };
@@ -8049,6 +8065,9 @@ function Folding() {
             return;
 
         this.$foldStyle = style;
+        
+        if (style == "manual")
+            this.unfold();
         
         // reset folding
         var mode = this.$foldMode;
@@ -8102,11 +8121,24 @@ function Folding() {
 
         var range = this.getFoldWidgetRange(row);
         if (range) {
+            // sometimes singleline folds can be missed by the code above
+            if (!range.isMultiLine()) {
+                fold = this.getFoldAt(range.start.row, range.start.column, 1);
+                if (fold && range.isEequal(fold.range)) {
+                    this.removeFold(fold);
+                    return;
+                }
+            }
+            
             if (!onlySubfolds)
                 this.addFold("...", range);
 
             if (addSubfolds)
                 this.foldAll(range.start.row + 1, range.end.row);
+        } else {
+            if (addSubfolds)
+                this.foldAll(row + 1, this.getLength());
+            e.target.className += " invalid"
         }
     };
     
@@ -8171,6 +8203,7 @@ exports.Folding = Folding;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/edit_session/fold_line', ['require', 'exports', 'module' , 'ace/range'], function(require, exports, module) {
+"use strict";
 
 var Range = require("../range").Range;
 
@@ -8443,6 +8476,7 @@ exports.FoldLine = FoldLine;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/edit_session/fold', ['require', 'exports', 'module' ], function(require, exports, module) {
+"use strict";
 
 /**
  * Simple fold-data struct.
@@ -8557,6 +8591,7 @@ var Fold = exports.Fold = function(range, placeholder) {
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/token_iterator', ['require', 'exports', 'module' ], function(require, exports, module) {
+"use strict";
 
 var TokenIterator = function(session, initialRow, initialColumn) {
     this.$session = session;
@@ -8574,8 +8609,10 @@ var TokenIterator = function(session, initialRow, initialColumn) {
         
         while (this.$tokenIndex < 0) {
             this.$row -= 1;
-            if (this.$row < 0)
+            if (this.$row < 0) {
+                this.$row = 0;
                 return null;
+            }
                 
             this.$rowTokens = this.$session.getTokens(this.$row, this.$row)[0].tokens;
             this.$tokenIndex = this.$rowTokens.length - 1;
@@ -8590,8 +8627,10 @@ var TokenIterator = function(session, initialRow, initialColumn) {
         
         while (this.$tokenIndex >= this.$rowTokens.length) {
             this.$row += 1;
-            if (this.$row >= rowCount)
+            if (this.$row >= rowCount) {
+                this.$row = rowCount - 1;
                 return null;
+            }
 
             this.$rowTokens = this.$session.getTokens(this.$row, this.$row)[0].tokens;
             this.$tokenIndex = 0;
@@ -8669,6 +8708,7 @@ exports.TokenIterator = TokenIterator;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/edit_session/bracket_match', ['require', 'exports', 'module' , 'ace/token_iterator'], function(require, exports, module) {
+"use strict";
 
 var TokenIterator = require("../token_iterator").TokenIterator;
 
@@ -8724,15 +8764,15 @@ function BracketMatch() {
         while (true) {
         
             while (valueIndex >= 0) {
-                var char = value.charAt(valueIndex);
-                if (char == openBracket) {
+                var chr = value.charAt(valueIndex);
+                if (chr == openBracket) {
                     depth -= 1;
                     if (depth == 0) {
                         return {row: iterator.getCurrentTokenRow(),
                             column: valueIndex + iterator.getCurrentTokenColumn()};
                     }
                 }
-                else if (char == bracket) {
+                else if (chr == bracket) {
                     depth += 1;
                 }
                 valueIndex -= 1;
@@ -8778,15 +8818,15 @@ function BracketMatch() {
             var value = token.value;
             var valueLength = value.length;
             while (valueIndex < valueLength) {
-                var char = value.charAt(valueIndex);
-                if (char == closingBracket) {
+                var chr = value.charAt(valueIndex);
+                if (chr == closingBracket) {
                     depth -= 1;
                     if (depth == 0) {
                         return {row: iterator.getCurrentTokenRow(),
                             column: valueIndex + iterator.getCurrentTokenColumn()};
                     }
                 }
-                else if (char == bracket) {
+                else if (chr == bracket) {
                     depth += 1;
                 }
                 valueIndex += 1;
@@ -8850,6 +8890,7 @@ exports.BracketMatch = BracketMatch;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/undomanager', ['require', 'exports', 'module' ], function(require, exports, module) {
+"use strict";
 
 var UndoManager = function() {
     this.reset();
@@ -8941,6 +8982,7 @@ exports.UndoManager = UndoManager;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/keyboard/keybinding/vim', ['require', 'exports', 'module' , 'ace/keyboard/state_handler'], function(require, exports, module) {
+"use strict";
 
 var StateHandler = require("../state_handler").StateHandler;
 var matchCharacterOnly =  require("../state_handler").matchCharacterOnly;
@@ -9078,6 +9120,7 @@ exports.Vim = new StateHandler(vimStates);
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/keyboard/state_handler', ['require', 'exports', 'module' ], function(require, exports, module) {
+"use strict";
 
 // If you're developing a new keymapping and want to get an idea what's going
 // on, then enable debugging.
@@ -9332,6 +9375,7 @@ exports.StateHandler = StateHandler;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/keyboard/keybinding/emacs', ['require', 'exports', 'module' , 'ace/keyboard/state_handler'], function(require, exports, module) {
+"use strict";
 
 var StateHandler = require("../state_handler").StateHandler;
 var matchCharacterOnly =  require("../state_handler").matchCharacterOnly;
@@ -9482,6 +9526,7 @@ exports.Emacs = new StateHandler(emacsState);
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/keyboard/hash_handler', ['require', 'exports', 'module' , 'ace/lib/keys'], function(require, exports, module) {
+"use strict";
 
 var keyUtil  = require("../lib/keys");
 
@@ -9598,6 +9643,7 @@ exports.HashHandler = HashHandler;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/c_cpp', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/c_cpp_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/range', 'ace/mode/behaviour/cstyle', 'ace/mode/folding/cstyle'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
@@ -9731,6 +9777,7 @@ exports.Mode = Mode;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/c_cpp_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var lang = require("../lib/lang");
@@ -9907,6 +9954,7 @@ exports.c_cppHighlightRules = c_cppHighlightRules;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/doc_comment_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
@@ -10002,6 +10050,7 @@ exports.DocCommentHighlightRules = DocCommentHighlightRules;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/matching_brace_outdent', ['require', 'exports', 'module' , 'ace/range'], function(require, exports, module) {
+"use strict";
 
 var Range = require("../range").Range;
 
@@ -10083,6 +10132,7 @@ exports.MatchingBraceOutdent = MatchingBraceOutdent;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/behaviour/cstyle', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/behaviour'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../../lib/oop");
 var Behaviour = require('../behaviour').Behaviour;
@@ -10303,6 +10353,7 @@ exports.CstyleBehaviour = CstyleBehaviour;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/folding/cstyle', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/range', 'ace/mode/folding/fold_mode'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../../lib/oop");
 var Range = require("../../range").Range;
@@ -10322,23 +10373,12 @@ oop.inherits(FoldMode, BaseFoldMode);
         if (match) {
             var i = match.index;
 
-            if (match[2])
-                return session.getCommentFoldRange(row, i + match[0].length);
+            if (match[1])
+                return this.openingBracketBlock(session, match[1], row, i);
 
-            var start = {row: row, column: i+1};
-            var end = session.$findClosingBracket(match[1], start);
-            if (!end)
-                return;
-
-            var fw = session.foldWidgets[end.row];
-            if (fw == null)
-                fw = this.getFoldWidget(session, end.row);
-
-            if (fw == "start") {
-                end.row --;
-                end.column = session.getLine(end.row).length;
-            }
-            return Range.fromPoints(start, end);
+            var range = session.getCommentFoldRange(row, i + match[0].length);
+            range.end.column -= 2;
+            return range;
         }
 
         if (foldStyle !== "markbeginend")
@@ -10348,8 +10388,11 @@ oop.inherits(FoldMode, BaseFoldMode);
         if (match) {
             var i = match.index + match[0].length;
 
-            if (match[2])
-                return session.getCommentFoldRange(row, i);
+            if (match[2]) {
+                var range = session.getCommentFoldRange(row, i);
+                range.end.column -= 2;
+                return range;
+            }
 
             var end = {row: row, column: i};
             var start = session.$findOpeningBracket(match[1], end);
@@ -10404,6 +10447,7 @@ oop.inherits(FoldMode, BaseFoldMode);
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/folding/fold_mode', ['require', 'exports', 'module' , 'ace/range'], function(require, exports, module) {
+"use strict";
 
 var Range = require("../../range").Range;
 
@@ -10411,42 +10455,36 @@ var FoldMode = exports.FoldMode = function() {};
 
 (function() {
 
-    this.FOO = 12;
-
     this.foldingStartMarker = null;
     this.foldingStopMarker = null;
 
     // must return "" if there's no fold, to enable caching
     this.getFoldWidget = function(session, foldStyle, row) {
-        if (this.foldingStartMarker) {
-            if (this.foldingStopMarker) {
-                // rewrite getFoldWidget so the check is only performed once
-                FoldMode.prototype.getFoldWidget = this.$testBoth;
-                return this.$testBoth(session, foldStyle, row);
-            }
-            else {
-                // rewrite getFoldWidget so the check is only performed once
-                FoldMode.prototype.getFoldWidget = this.$testStart;
-                return this.$testStart(session, foldStyle, row);
-            }
-        }
-        else
-            return "";
+        var line = session.getLine(row);
+        if (this.foldingStartMarker.test(line))
+            return "start";
+        if (foldStyle == "markbeginend"
+                && this.foldingStopMarker
+                && this.foldingStopMarker.test(line))
+            return "end";
+        return "";
     };
     
     this.getFoldWidgetRange = function(session, foldStyle, row) {
         return null;
     };
 
-    this.indentationBlock = function(session, foldStyle, row) {
+    this.indentationBlock = function(session, row, column) {
         var re = /^\s*/;
         var startRow = row;
         var endRow = row;
         var line = session.getLine(row);
-        var startColumn = line.length - 1;
+        var startColumn = column || line.length;
         var startLevel = line.match(re)[0].length;
-
-        while (line = session.getLine(++row)) {
+        var maxRow = session.getLength()
+        
+        while (++row < maxRow) {
+            line = session.getLine(row);
             var level = line.match(re)[0].length;
 
             if (level == line.length)
@@ -10464,19 +10502,21 @@ var FoldMode = exports.FoldMode = function() {};
         }
     };
 
-    this.$testStart = function(session, foldStyle, row) {
-        if (this.foldingStartMarker.test(session.getLine(row)))
-            return "start";
-        return "";
-    };
-    
-    this.$testBoth = function(session, foldStyle, row) {
-        var line = session.getLine(row);
-        if (this.foldingStartMarker.test(line))
-            return "start";
-        if (foldStyle == "markbeginend" && this.foldingStopMarker.test(line))
-            return "end";
-        return "";
+    this.openingBracketBlock = function(session, bracket, row, column) {
+        var start = {row: row, column: column + 1};
+        var end = session.$findClosingBracket(bracket, start);
+        if (!end)
+            return;
+
+        var fw = session.foldWidgets[end.row];
+        if (fw == null)
+            fw = this.getFoldWidget(session, end.row);
+
+        if (fw == "start") {
+            end.row --;
+            end.column = session.getLine(end.row).length;
+        }
+        return Range.fromPoints(start, end);
     };
 
 }).call(FoldMode.prototype);
@@ -10522,6 +10562,7 @@ var FoldMode = exports.FoldMode = function() {};
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/clojure', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/clojure_highlight_rules', 'ace/mode/matching_parens_outdent', 'ace/range'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
@@ -10642,6 +10683,7 @@ exports.Mode = Mode;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/clojure_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var lang = require("../lib/lang");
@@ -10859,6 +10901,7 @@ exports.ClojureHighlightRules = ClojureHighlightRules;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/matching_parens_outdent', ['require', 'exports', 'module' , 'ace/range'], function(require, exports, module) {
+"use strict";
 
 var Range = require("../range").Range;
 
@@ -10938,11 +10981,13 @@ exports.MatchingParensOutdent = MatchingParensOutdent;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/mode/coffee', ['require', 'exports', 'module' , 'ace/tokenizer', 'ace/mode/coffee_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/range', 'ace/mode/text', 'ace/worker/worker_client', 'ace/lib/oop'], function(require, exports, module) {
+define('ace/mode/coffee', ['require', 'exports', 'module' , 'ace/tokenizer', 'ace/mode/coffee_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/mode/folding/pythonic', 'ace/range', 'ace/mode/text', 'ace/worker/worker_client', 'ace/lib/oop'], function(require, exports, module) {
+"use strict";
 
 var Tokenizer = require("../tokenizer").Tokenizer;
 var Rules = require("./coffee_highlight_rules").CoffeeHighlightRules;
 var Outdent = require("./matching_brace_outdent").MatchingBraceOutdent;
+var PythonFoldMode = require("./folding/pythonic").FoldMode;
 var Range = require("../range").Range;
 var TextMode = require("./text").Mode;
 var WorkerClient = require("../worker/worker_client").WorkerClient;
@@ -10951,6 +10996,7 @@ var oop = require("../lib/oop");
 function Mode() {
     this.$tokenizer = new Tokenizer(new Rules().getRules());
     this.$outdent   = new Outdent();
+    this.foldingRules = new PythonFoldMode("=|=>|->|\\s*class [^#]*");
 }
 
 oop.inherits(Mode, TextMode);
@@ -11056,6 +11102,7 @@ exports.Mode = Mode;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/coffee_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/lang', 'ace/lib/oop', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+"use strict";
 
     var lang = require("../lib/lang");
     var oop = require("../lib/oop");
@@ -11281,22 +11328,87 @@ define('ace/mode/coffee_highlight_rules', ['require', 'exports', 'module' , 'ace
  *
  * ***** END LICENSE BLOCK ***** */
 
+define('ace/mode/folding/pythonic', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/folding/fold_mode'], function(require, exports, module) {
+"use strict";
+
+var oop = require("../../lib/oop");
+var BaseFoldMode = require("./fold_mode").FoldMode;
+
+var FoldMode = exports.FoldMode = function(markers) {
+    this.foldingStartMarker = new RegExp("(?:([\\[{])|(" + markers + "))(?:\\s*)(?:#.*)?$");
+};
+oop.inherits(FoldMode, BaseFoldMode);
+
+(function() {
+
+    this.getFoldWidgetRange = function(session, foldStyle, row) {
+        var line = session.getLine(row);
+        var match = line.match(this.foldingStartMarker);
+        if (match) {
+            if (match[1])
+                return this.openingBracketBlock(session, match[1], row, match.index);
+            if (match[2])
+                return this.indentationBlock(session, row, match.index + match[2].length);
+            return this.indentationBlock(session, row);
+        }
+    }
+
+}).call(FoldMode.prototype);
+
+});/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Ajax.org Code Editor (ACE).
+ *
+ * The Initial Developer of the Original Code is
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *      Fabian Jakobs <fabian AT ajax DOT org>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
 define('ace/worker/worker_client', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/event_emitter'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var EventEmitter = require("../lib/event_emitter").EventEmitter;
 
-var WorkerClient = function(topLevelNamespaces, packagedJs, module, classname) {
+var WorkerClient = function(topLevelNamespaces, packagedJs, mod, classname) {
 
     this.changeListener = this.changeListener.bind(this);
 
-    if (window.require.packaged) {
+    if (module.packaged) {
         var base = this.$guessBasePath();
-        var worker = this.$worker = new Worker(base + packagedJs);
+        this.$worker = new Worker(base + packagedJs);
     }
     else {
         var workerUrl = this.$normalizePath(require.nameToUrl("ace/worker/worker", null, "_"));
-        var worker = this.$worker = new Worker(workerUrl);
+        this.$worker = new Worker(workerUrl);
 
         var tlns = {};
         for (var i=0; i<topLevelNamespaces.length; i++) {
@@ -11310,7 +11422,7 @@ var WorkerClient = function(topLevelNamespaces, packagedJs, module, classname) {
     this.$worker.postMessage({
         init : true,
         tlns: tlns,
-        module: module,
+        module: mod,
         classname: classname
     });
 
@@ -11330,7 +11442,7 @@ var WorkerClient = function(topLevelNamespaces, packagedJs, module, classname) {
                 break;
 
             case "event":
-                _self._dispatchEvent(msg.name, {data: msg.data});
+                _self._emit(msg.name, {data: msg.data});
                 break;
 
             case "call":
@@ -11374,7 +11486,7 @@ var WorkerClient = function(topLevelNamespaces, packagedJs, module, classname) {
             if (!src) {
                 continue;
             }
-            var m = src.match(/^(?:(.*\/)ace\.js|(.*\/)ace-uncompressed\.js)(?:\?|$)/);
+            var m = src.match(/^(?:(.*\/)ace\.js|(.*\/)ace(-uncompressed)?(-noconflict)?\.js)(?:\?|$)/);
             if (m)
                 return m[1] || m[2];
         }
@@ -11382,7 +11494,7 @@ var WorkerClient = function(topLevelNamespaces, packagedJs, module, classname) {
     };
 
     this.terminate = function() {
-        this._dispatchEvent("terminate", {});
+        this._emit("terminate", {});
         this.$worker.terminate();
         this.$worker = null;
         this.$doc.removeEventListener("change", this.changeListener);
@@ -11471,6 +11583,7 @@ exports.WorkerClient = WorkerClient;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/coldfusion', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/xml', 'ace/mode/javascript', 'ace/mode/css', 'ace/tokenizer', 'ace/mode/coldfusion_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var XmlMode = require("./xml").Mode;
@@ -11541,6 +11654,7 @@ exports.Mode = Mode;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/xml', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/xml_highlight_rules', 'ace/mode/behaviour/xml', 'ace/mode/folding/xml'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
@@ -11558,7 +11672,6 @@ var Mode = function() {
 oop.inherits(Mode, TextMode);
 
 (function() {
-    
     
     this.getNextLineIndent = function(state, line, tab) {
         return this.$getIndent(line);
@@ -11606,6 +11719,7 @@ exports.Mode = Mode;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/xml_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/xml_util', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var xmlUtil = require("./xml_util");
@@ -11707,7 +11821,18 @@ exports.XmlHighlightRules = XmlHighlightRules;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/mode/xml_util', ['require', 'exports', 'module' ], function(require, exports, module) {
+define('ace/mode/xml_util', ['require', 'exports', 'module' , 'ace/lib/lang'], function(require, exports, module) {
+"use strict";
+
+var lang = require("../lib/lang");
+
+var formTags = lang.arrayToMap(
+    ("button|form|input|label|select|textarea").split("|")
+);
+
+var tableTags = lang.arrayToMap(
+    ("table|tbody|td|tfoot|th|tr").split("|")
+);
 
 function string(state) {
     return [{
@@ -11747,9 +11872,33 @@ exports.tag = function(states, name, nextState) {
         token : "text",
         regex : "\\s+"
     }, {
-        token : "meta.tag",
+        //token : "meta.tag",
+        
+    token : function(value) {
+            if ( value==='a' ) {
+                return "meta.tag.anchor";
+            }
+            else if ( value==='img' ) {
+                return "meta.tag.image";
+            }
+            else if ( value==='script' ) {
+                return "meta.tag.script";
+            }
+            else if ( value==='style' ) {
+                return "meta.tag.style";
+            }
+            else if (formTags.hasOwnProperty(value.toLowerCase())) {
+                return "meta.tag.form";
+            }
+            else if (tableTags.hasOwnProperty(value.toLowerCase())) {
+                return "meta.tag.table";
+            }
+            else {
+                return "meta.tag";
+            }
+        },        
         merge : true,
-        regex : "[-_a-zA-Z0-9:]+",
+        regex : "[-_a-zA-Z0-9:!]+",
         next : name + "embed-attribute-list" 
     }, {
         token: "empty",
@@ -11820,6 +11969,7 @@ exports.tag = function(states, name, nextState) {
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/behaviour/xml', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/behaviour', 'ace/mode/behaviour/cstyle'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../../lib/oop");
 var Behaviour = require("../behaviour").Behaviour;
@@ -11908,9 +12058,11 @@ exports.XmlBehaviour = XmlBehaviour;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/mode/folding/xml', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/range', 'ace/mode/folding/fold_mode', 'ace/token_iterator'], function(require, exports, module) {
+define('ace/mode/folding/xml', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/range', 'ace/mode/folding/fold_mode', 'ace/token_iterator'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../../lib/oop");
+var lang = require("../../lib/lang");
 var Range = require("../../range").Range;
 var BaseFoldMode = require("./fold_mode").FoldMode;
 var TokenIterator = require("../../token_iterator").TokenIterator;
@@ -11924,121 +12076,210 @@ oop.inherits(FoldMode, BaseFoldMode);
 (function() {
 
     this.getFoldWidget = function(session, foldStyle, row) {
-        var tags = session.getTokens(row, row)[0].tokens
-            .filter(function(token) {
-                return token.type === "meta.tag";
-            })
-            .map(function(token) {
-                return token.value;
-            }).
-            join("")
-            .trim()
-            .replace(/^<|>$|\s+/g, "")
-            .split("><");
-        var fold = tags[0];
-        
-        if (!fold || this.voidElements[fold])
-            return "";
-            
-        if (fold.charAt(0) == "/")
+        var tag = this._getFirstTagInLine(session, row);
+
+        if (tag.closing)
             return foldStyle == "markbeginend" ? "end" : "";
-            
-        if (fold.charAt(fold.length-1) == "/")
+
+        if (!tag.tagName || this.voidElements[tag.tagName.toLowerCase()])
             return "";
-            
-        if (tags.indexOf("/" + fold) !== -1)
+
+        if (tag.selfClosing)
             return "";
-            
+
+        if (tag.value.indexOf("/" + tag.tagName) !== -1)
+            return "";
+
         return "start";
     };
-        
-    this.getFoldWidgetRange = function(session, foldStyle, row) {
-        var start, end;
-        var stack = [];
-        var voidElements = this.voidElements;
-        
-        var iterator = new TokenIterator(session, row, 0);
-        var step = "stepForward";
-        var isBack = false;
-            
-        function pop(stack, tagName) {
-            while (stack.length) {
-                var top = stack[stack.length-1];
-                if (!tagName || top === "" || top == tagName) {
-                    stack.pop();
-                    return true;
-                }
-                if (voidElements[top]) {
-                    stack.pop();
-                    continue;
-                }
-                else
-                    return false;
-            }
-            return false;
+    
+    this._getFirstTagInLine = function(session, row) {
+        var tokens = session.getTokens(row, row)[0].tokens;
+        var value = "";
+        for (var i = 0; i < tokens.length; i++) {
+            var token = tokens[i];
+            if (token.type.indexOf("meta.tag") === 0)
+                value += token.value;
+            else
+                value += lang.stringRepeat(" ", token.value.length);
         }
-            
-        // limited XML parsing to find matching tag
-        do {
-            var token = iterator.getCurrentToken();
+        
+        return this._parseTag(value);
+    };
 
-            var value = token.value.trim();
-            if (token && token.type == "meta.tag" && token.value !== ">") {
-                var tagName = value.replace(/^[<\s]*|[\s*>]$/g, "");
-                if (!start) {
-                    if (tagName.charAt(0) == "/") {
-                        tagName = tagName.slice(1);
-                        step = "stepBackward";
-                        isBack = true;
-                    }
-                    
-                    start = {
-                        row: row,
-                        column: iterator.getCurrentTokenColumn() + (isBack ? 0 : value.length + 1)
-                    };
+    this.tagRe = /^(\s*)(<?(\/?)([-_a-zA-Z0-9:!]*)\s*(\/?)>?)/;
+    this._parseTag = function(tag) {
+        
+        var match = this.tagRe.exec(tag);
+        var column = this.tagRe.lastIndex || 0;
+        this.tagRe.lastIndex = 0;
 
-                    stack.push(tagName);
-                }
-                else {
-                    var close;
-                    if (tagName.charAt(0) == "/") {
-                        tagName = tagName.slice(1);
-                        close = !isBack;
-                    }
-                    else if (tagName.charAt(tagName.length-1) == "/") {
-                        tagName = "";
-                        close = !isBack;
-                    }
-                    else
-                        close = isBack;
-                        
-                    if (close) {
-                        if (pop(stack, tagName)) {
-                            if (stack.length === 0) {
-                                end = {
-                                    row: iterator.getCurrentTokenRow(),
-                                    column: iterator.getCurrentTokenColumn() + (isBack ? value.length + 1 : 0)
-                                };
-                                if (isBack)
-                                    return Range.fromPoints(end, start);
-                                else
-                                    return Range.fromPoints(start, end);
-                            }
-                        }
-                        else {
-                            if (!(isBack && voidElements[tagName]))
-                                typeof console !== undefined && console.error("unmatched tags!", tagName, stack);
-                        }
-                    }
-                    else {
-                        stack.push(tagName);
-                    }
-                }
-            }
-            
-        } while(token = iterator[step]());
+        return {
+            value: tag,
+            match: match ? match[2] : "",
+            closing: match ? !!match[3] : false,
+            selfClosing: match ? !!match[5] || match[2] == "/>" : false,
+            tagName: match ? match[4] : "",
+            column: match[1] ? column + match[1].length : column
+        };
     };
     
+    /**
+     * reads a full tag and places the iterator after the tag
+     */
+    this._readTagForward = function(iterator) {
+        var token = iterator.getCurrentToken();
+        if (!token)
+            return null;
+            
+        var value = "";
+        var start;
+        
+        do {
+            if (token.type.indexOf("meta.tag") === 0) {
+                if (!start) {
+                    var start = {
+                        row: iterator.getCurrentTokenRow(),
+                        column: iterator.getCurrentTokenColumn()
+                    };
+                }
+                value += token.value;
+                if (value.indexOf(">") !== -1) {
+                    var tag = this._parseTag(value);
+                    tag.start = start;
+                    tag.end = {
+                        row: iterator.getCurrentTokenRow(),
+                        column: iterator.getCurrentTokenColumn() + token.value.length
+                    };
+                    iterator.stepForward();
+                    return tag;
+                }
+            }
+        } while(token = iterator.stepForward());
+        
+        return null;
+    };
+    
+    this._readTagBackward = function(iterator) {
+        var token = iterator.getCurrentToken();
+        if (!token)
+            return null;
+            
+        var value = "";
+        var end;
+
+        do {
+            if (token.type.indexOf("meta.tag") === 0) {
+                if (!end) {
+                    end = {
+                        row: iterator.getCurrentTokenRow(),
+                        column: iterator.getCurrentTokenColumn() + token.value.length
+                    };
+                }
+                value = token.value + value;
+                if (value.indexOf("<") !== -1) {
+                    var tag = this._parseTag(value);
+                    tag.end = end;
+                    tag.start = {
+                        row: iterator.getCurrentTokenRow(),
+                        column: iterator.getCurrentTokenColumn()
+                    };
+                    iterator.stepBackward();
+                    return tag;
+                }
+            }
+        } while(token = iterator.stepBackward());
+        
+        return null;
+    };
+    
+    this._pop = function(stack, tag) {
+        while (stack.length) {
+            
+            var top = stack[stack.length-1];
+            if (!tag || top.tagName == tag.tagName) {
+                return stack.pop();
+            }
+            else if (this.voidElements[tag.tagName]) {
+                return;
+            }
+            else if (this.voidElements[top.tagName]) {
+                stack.pop();
+                continue;
+            } else {
+                return null;
+            }
+        }
+    };
+    
+    this.getFoldWidgetRange = function(session, foldStyle, row) {
+        var firstTag = this._getFirstTagInLine(session, row);
+        
+        if (!firstTag.match)
+            return null;
+        
+        var isBackward = firstTag.closing || firstTag.selfClosing;
+        var stack = [];
+        var tag;
+        
+        if (!isBackward) {
+            var iterator = new TokenIterator(session, row, firstTag.column);
+            var start = {
+                row: row,
+                column: firstTag.column + firstTag.tagName.length + 2
+            };
+            while (tag = this._readTagForward(iterator)) {
+                if (tag.selfClosing) {
+                    if (!stack.length) {
+                        tag.start.column += tag.tagName.length + 2;
+                        tag.end.column -= 2;
+                        return Range.fromPoints(tag.start, tag.end);
+                    } else
+                        continue;
+                }
+                
+                if (tag.closing) {
+                    this._pop(stack, tag);
+                    if (stack.length == 0)
+                        return Range.fromPoints(start, tag.start);
+                }
+                else {
+                    stack.push(tag)
+                }
+            }
+        }
+        else {
+            var iterator = new TokenIterator(session, row, firstTag.column + firstTag.match.length);
+            var end = {
+                row: row,
+                column: firstTag.column
+            };
+            
+            while (tag = this._readTagBackward(iterator)) {
+                if (tag.selfClosing) {
+                    if (!stack.length) {
+                        tag.start.column += tag.tagName.length + 2;
+                        tag.end.column -= 2;
+                        return Range.fromPoints(tag.start, tag.end);
+                    } else
+                        continue;
+                }
+                
+                if (!tag.closing) {
+                    this._pop(stack, tag);
+                    if (stack.length == 0) {
+                        tag.start.column += tag.tagName.length + 2;
+                        return Range.fromPoints(tag.start, end);
+                    }
+                }
+                else {
+                    stack.push(tag)
+                }
+            }
+        }
+        
+    };
+
 }).call(FoldMode.prototype);
 
 });/* ***** BEGIN LICENSE BLOCK *****
@@ -12079,6 +12320,7 @@ oop.inherits(FoldMode, BaseFoldMode);
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/javascript', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/javascript_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/range', 'ace/worker/worker_client', 'ace/mode/behaviour/cstyle', 'ace/mode/folding/cstyle'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
@@ -12243,6 +12485,7 @@ exports.Mode = Mode;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/javascript_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/unicode', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var lang = require("../lib/lang");
@@ -12567,6 +12810,7 @@ exports.JavaScriptHighlightRules = JavaScriptHighlightRules;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/css', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/css_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/worker/worker_client', 'ace/mode/folding/cstyle'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
@@ -12676,6 +12920,7 @@ exports.Mode = Mode;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/css_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var lang = require("../lib/lang");
@@ -12941,6 +13186,7 @@ exports.CssHighlightRules = CssHighlightRules;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/coldfusion_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/css_highlight_rules', 'ace/mode/javascript_highlight_rules', 'ace/mode/text_highlight_rules', 'ace/mode/xml_util'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var CssHighlightRules = require("./css_highlight_rules").CssHighlightRules;
@@ -13038,6 +13284,7 @@ oop.inherits(ColdfusionHighlightRules, TextHighlightRules);
 exports.ColdfusionHighlightRules = ColdfusionHighlightRules;
 });
 define('ace/mode/csharp', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/csharp_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/mode/behaviour/cstyle', 'ace/mode/folding/cstyle'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
@@ -13095,6 +13342,7 @@ oop.inherits(Mode, TextMode);
 exports.Mode = Mode;
 });
 define('ace/mode/csharp_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var lang = require("../lib/lang");
@@ -13198,6 +13446,7 @@ oop.inherits(CSharpHighlightRules, TextHighlightRules);
 exports.CSharpHighlightRules = CSharpHighlightRules;
 });
 define('ace/mode/groovy', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/javascript', 'ace/tokenizer', 'ace/mode/groovy_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var JavaScriptMode = require("./javascript").Mode;
@@ -13221,6 +13470,7 @@ oop.inherits(Mode, JavaScriptMode);
 exports.Mode = Mode;
 });
 define('ace/mode/groovy_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var lang = require("../lib/lang");
@@ -13363,6 +13613,7 @@ oop.inherits(GroovyHighlightRules, TextHighlightRules);
 exports.GroovyHighlightRules = GroovyHighlightRules;
 });
 define('ace/mode/haxe', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/haxe_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/mode/behaviour/cstyle', 'ace/mode/folding/cstyle'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
@@ -13420,6 +13671,7 @@ oop.inherits(Mode, TextMode);
 exports.Mode = Mode;
 });
 define('ace/mode/haxe_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var lang = require("../lib/lang");
@@ -13560,6 +13812,7 @@ exports.HaxeHighlightRules = HaxeHighlightRules;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/html', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/mode/javascript', 'ace/mode/css', 'ace/tokenizer', 'ace/mode/html_highlight_rules', 'ace/mode/behaviour/xml', 'ace/mode/folding/html'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
@@ -13642,6 +13895,7 @@ exports.Mode = Mode;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/html_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/css_highlight_rules', 'ace/mode/javascript_highlight_rules', 'ace/mode/xml_util', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var CssHighlightRules = require("./css_highlight_rules").CssHighlightRules;
@@ -13655,7 +13909,7 @@ var HtmlHighlightRules = function() {
     // regexps are ordered -> the first match is used
     this.$rules = {
         start : [{
-            token : "meta.tag",
+            token : "text",
             merge : true,
             regex : "<\\!\\[CDATA\\[",
             next : "cdata"
@@ -13669,11 +13923,11 @@ var HtmlHighlightRules = function() {
             next : "comment"
         }, {
             token : "meta.tag",
-            regex : "<(?=\s*script)",
+            regex : "<(?=\s*script\\b)",
             next : "script"
         }, {
             token : "meta.tag",
-            regex : "<(?=\s*style)",
+            regex : "<(?=\s*style\\b)",
             next : "css"
         }, {
             token : "meta.tag", // opening tag
@@ -13775,6 +14029,7 @@ exports.HtmlHighlightRules = HtmlHighlightRules;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/folding/html', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/folding/mixed', 'ace/mode/folding/xml', 'ace/mode/folding/cstyle'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../../lib/oop");
 var MixedFoldMode = require("./mixed").FoldMode;
@@ -13859,6 +14114,7 @@ oop.inherits(FoldMode, MixedFoldMode);
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/folding/mixed', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/folding/fold_mode'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../../lib/oop");
 var BaseFoldMode = require("./fold_mode").FoldMode;
@@ -13908,6 +14164,7 @@ oop.inherits(FoldMode, BaseFoldMode);
 }).call(FoldMode.prototype);
 
 });define('ace/mode/java', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/javascript', 'ace/tokenizer', 'ace/mode/java_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var JavaScriptMode = require("./javascript").Mode;
@@ -13932,6 +14189,7 @@ oop.inherits(Mode, JavaScriptMode);
 exports.Mode = Mode;
 });
 define('ace/mode/java_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var lang = require("../lib/lang");
@@ -14112,6 +14370,7 @@ exports.JavaHighlightRules = JavaHighlightRules;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/json', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/json_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/mode/behaviour/cstyle', 'ace/mode/folding/cstyle'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
@@ -14193,10 +14452,10 @@ exports.Mode = Mode;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/mode/json_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+define('ace/mode/json_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
-var lang = require("../lib/lang");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
 var JsonHighlightRules = function() {
@@ -14243,6 +14502,7 @@ oop.inherits(JsonHighlightRules, TextHighlightRules);
 exports.JsonHighlightRules = JsonHighlightRules;
 });
 define('ace/mode/latex', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/latex_highlight_rules', 'ace/range'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
@@ -14256,12 +14516,10 @@ var Mode = function()
 };
 oop.inherits(Mode, TextMode);
 
-(function()
-{
+(function() {
     this.toggleCommentLines = function(state, doc, startRow, endRow) {
         // This code is adapted from ruby.js
         var outdent = true;
-        var outentedRows = [];
         
         // LaTeX comments begin with % and go to the end of the line
         var commentRegEx = /^(\s*)\%/;
@@ -14301,12 +14559,12 @@ exports.Mode = Mode;
 
 });
 define('ace/mode/latex_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
-var LatexHighlightRules = function()
-{   
+var LatexHighlightRules = function() {   
     this.$rules = {
         "start" : [{
             // A tex command e.g. \foo
@@ -14377,12 +14635,13 @@ exports.LatexHighlightRules = LatexHighlightRules;
 *
 * ***** END LICENSE BLOCK ***** */
 
-define('ace/mode/lua', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/lua_highlight_rules', 'ace/range'], function(require, exports, module) {
+define('ace/mode/lua', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/lua_highlight_rules'], function(require, exports, module) {
+"use strict";
+
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
 var Tokenizer = require("../tokenizer").Tokenizer;
 var LuaHighlightRules = require("./lua_highlight_rules").LuaHighlightRules;
-var Range = require("../range").Range;
 
 var Mode = function() {
     this.$tokenizer = new Tokenizer(new LuaHighlightRules().getRules());
@@ -14395,7 +14654,6 @@ oop.inherits(Mode, TextMode);
 
         var tokenizedLine = this.$tokenizer.getLineTokens(line, state);
         var tokens = tokenizedLine.tokens;
-        var endState = tokenizedLine.state;
 	
         var chunks = ["function", "then", "do", "repeat"];
         
@@ -14418,39 +14676,6 @@ oop.inherits(Mode, TextMode);
 
         return indent;
     };
-    
-    /*this.checkOutdent = function(state, line, input) {
-        if (input !== "\r\n" && input !== "\r" && input !== "\n")
-            return false;
-
-        var tokens = this.$tokenizer.getLineTokens(line.trim(), state).tokens;
-        
-        if (!tokens)
-            return false;
-        
-        // ignore trailing comments
-        do {
-            var last = tokens.pop();
-        } while (last && (last.type == "comment" || (last.type == "text" && last.value.match(/^\s+$/))));
-        
-        if (!last)
-            return false;
-        var outdents = {
-            "end" : 1,
-            "until" : 1,
-            "else" : 1
-        }
-        return (last.type == "keyword" && outdents[last.value]);
-    };
-    
-    this.autoOutdent = function(state, doc, row) {
-        console.log(doc, row);
-        var indent = this.$getIndent(doc.getLine(row));
-        var tab = doc.getTabString();
-        if (indent.slice(-tab.length) == tab)
-            doc.remove(new Range(row, indent.length-tab.length, row, indent.length));
-
-    };*/
     
 }).call(Mode.prototype);
 
@@ -14498,6 +14723,7 @@ exports.Mode = Mode;
 * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/lua_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var lang = require("../lib/lang");
@@ -14933,7 +15159,8 @@ exports.LuaHighlightRules = LuaHighlightRules;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/mode/markdown', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/mode/javascript', 'ace/mode/xml', 'ace/mode/html', 'ace/tokenizer', 'ace/mode/markdown_highlight_rules', 'ace/range'], function(require, exports, module) {
+define('ace/mode/markdown', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/mode/javascript', 'ace/mode/xml', 'ace/mode/html', 'ace/tokenizer', 'ace/mode/markdown_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
@@ -14942,7 +15169,6 @@ var XmlMode = require("./xml").Mode;
 var HtmlMode = require("./html").Mode;
 var Tokenizer = require("../tokenizer").Tokenizer;
 var MarkdownHighlightRules = require("./markdown_highlight_rules").MarkdownHighlightRules;
-var Range = require("../range").Range;
 
 var Mode = function() {
     var highlighter = new MarkdownHighlightRules();
@@ -15012,6 +15238,7 @@ exports.Mode = Mode;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/markdown_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text_highlight_rules', 'ace/mode/javascript_highlight_rules', 'ace/mode/xml_highlight_rules', 'ace/mode/html_highlight_rules', 'ace/mode/css_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
@@ -15021,11 +15248,11 @@ var HtmlHighlightRules = require("./html_highlight_rules").HtmlHighlightRules;
 var CssHighlightRules = require("./css_highlight_rules").CssHighlightRules;
 
 function github_embed(tag, prefix) {
-  return { // Github style block
-    token : "support.function",
-    regex : "^```" + tag + "\\s*$",
-    next  : prefix + "start"
-  }
+    return { // Github style block
+        token : "support.function",
+        regex : "^```" + tag + "\\s*$",
+        next  : prefix + "start"
+    };
 }
 
 var MarkdownHighlightRules = function() {
@@ -15204,6 +15431,7 @@ exports.MarkdownHighlightRules = MarkdownHighlightRules;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/ocaml', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/ocaml_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/range'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
@@ -15308,6 +15536,7 @@ exports.Mode = Mode;
  */
 
 define('ace/mode/ocaml_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var lang = require("../lib/lang");
@@ -15660,6 +15889,7 @@ exports.OcamlHighlightRules = OcamlHighlightRules;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/perl', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/perl_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/range', 'ace/mode/folding/cstyle'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
@@ -15776,6 +16006,7 @@ exports.Mode = Mode;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/perl_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var lang = require("../lib/lang");
@@ -15943,6 +16174,7 @@ exports.PerlHighlightRules = PerlHighlightRules;
 * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/php', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/php_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/range', 'ace/mode/behaviour/cstyle', 'ace/mode/folding/cstyle'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
@@ -16062,6 +16294,7 @@ exports.Mode = Mode;
  */
 
 define('ace/mode/php_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var lang = require("../lib/lang");
@@ -16069,6 +16302,7 @@ var DocCommentHighlightRules = require("./doc_comment_highlight_rules").DocComme
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
 var PhpHighlightRules = function() {
+    var docComment = new DocCommentHighlightRules();
     // http://php.net/quickref.php
     var builtinFunctions = lang.arrayToMap(
         ('abs|acos|acosh|addcslashes|addslashes|aggregate|aggregate_info|aggregate_methods|aggregate_methods_by_list|aggregate_methods_by_regexp|' +
@@ -16928,12 +17162,31 @@ var PhpHighlightRules = function() {
     this.$rules = {
         "start" : [
             {
-                token : "support", // php open tag
+                token : "support.php_tag", // php open tag
                 regex : "<\\?(?:php|\\=)"
             },
             {
-                token : "support", // php close tag
+                token : "support.php_tag", // php close tag
                 regex : "\\?>"
+            },
+            {
+                token : "comment",
+                regex : "<\\!--",
+                next : "htmlcomment"
+            }, 
+            {
+                token : "meta.tag",
+                regex : "<style",
+                next : "css"
+            },
+            {
+                token : "meta.tag", // opening tag
+                regex : "<\\/?[-_a-zA-Z0-9:]+",
+                next : "htmltag"
+            },
+            {
+                token : 'meta.tag',
+                regex : '<\!DOCTYPE.*?>'
             },
             {
                 token : "comment",
@@ -16943,10 +17196,9 @@ var PhpHighlightRules = function() {
                token : "comment",
                regex : "#.*$"
             },
-            new DocCommentHighlightRules().getStartRule("doc-start"),
+            docComment.getStartRule("doc-start"),
             {
                 token : "comment", // multi line comment
-                merge : true,
                 regex : "\\/\\*",
                 next : "comment"
             }, {
@@ -16957,7 +17209,6 @@ var PhpHighlightRules = function() {
                 regex : '["](?:(?:\\\\.)|(?:[^"\\\\]))*?["]'
             }, {
                 token : "string", // multi line string start
-                merge : true,
                 regex : '["].*\\\\$',
                 next : "qqstring"
             }, {
@@ -16965,7 +17216,6 @@ var PhpHighlightRules = function() {
                 regex : "['](?:(?:\\\\.)|(?:[^'\\\\]))*?[']"
             }, {
                 token : "string", // multi line string start
-                merge : true,
                 regex : "['].*\\\\$",
                 next : "qstring"
             }, {
@@ -17001,11 +17251,7 @@ var PhpHighlightRules = function() {
                         "T(?:HOUS(?:ANDS_SEP|EP)|_FMT(?:_AMPM|))|YES(?:EXPR|STR)|STD(?:IN|OUT|ERR))\\b"
             }, {
                 token : function(value) {
-                    if (keywordsDeprecated.hasOwnProperty(value))
-                        return "invalid.deprecated";
-                    else if (keywords.hasOwnProperty(value))
-                        return "keyword";
-                    else if (languageConstructs.hasOwnProperty(value))
+                    if (keywords.hasOwnProperty(value))
                         return "keyword";
                     else if (builtinConstants.hasOwnProperty(value))
                         return "constant.language";
@@ -17013,12 +17259,12 @@ var PhpHighlightRules = function() {
                         return "variable.language";
                     else if (futureReserved.hasOwnProperty(value))
                         return "invalid.illegal";
-                    else if (builtinFunctionsDeprecated.hasOwnProperty(value))
-                        return "invalid.deprecated";
                     else if (builtinFunctions.hasOwnProperty(value))
                         return "support.function";
+                    else if (value == "debugger")
+                        return "invalid.deprecated";
                     else
-                        if(value.match(/^(\$[a-zA-Z_][a-zA-Z0-9_]*|self|parent)$/))
+                        if(value.match(/^(\$[a-zA-Z][a-zA-Z0-9_]*|self|parent)$/))
                             return "variable";
                         return "identifier";
                 },
@@ -17029,10 +17275,10 @@ var PhpHighlightRules = function() {
                 token : "keyword.operator",
                 regex : "!|\\$|%|&|\\*|\\-\\-|\\-|\\+\\+|\\+|~|===|==|=|!=|!==|<=|>=|<<=|>>=|>>>=|<>|<|>|!|&&|\\|\\||\\?\\:|\\*=|%=|\\+=|\\-=|&=|\\^=|\\b(?:in|instanceof|new|delete|typeof|void)"
             }, {
-                token : "paren.lparen",
+                token : "lparen",
                 regex : "[[({]"
             }, {
-                token : "paren.rparen",
+                token : "rparen",
                 regex : "[\\])}]"
             }, {
                 token : "text",
@@ -17046,7 +17292,6 @@ var PhpHighlightRules = function() {
                 next : "start"
             }, {
                 token : "comment", // comment spanning whole line
-                merge : true,
                 regex : ".+"
             }
         ],
@@ -17057,7 +17302,6 @@ var PhpHighlightRules = function() {
                 next : "start"
             }, {
                 token : "string",
-                merge : true,
                 regex : '.+'
             }
         ],
@@ -17068,10 +17312,98 @@ var PhpHighlightRules = function() {
                 next : "start"
             }, {
                 token : "string",
-                merge : true,
                 regex : '.+'
             }
-        ]
+        ],
+        "htmlcomment" : [
+             {
+                 token : "comment",
+                 regex : ".*?-->",
+                 next : "start"
+             }, {
+                 token : "comment",
+                 regex : ".+"
+             } 
+         ],
+         "htmltag" : [ 
+             {
+                 token : "meta.tag",
+                 regex : ">",
+                 next : "start"
+             }, {
+                 token : "text",
+                 regex : "[-_a-zA-Z0-9:]+"
+             }, {
+                 token : "text",
+                 regex : "\\s+"
+             }, {
+                 token : "string",
+                 regex : '".*?"'
+             }, {
+                 token : "string",
+                 regex : "'.*?'"
+             } 
+         ],
+        "css" : [ 
+             {
+                 token : "meta.tag",
+                 regex : "<\/style>",
+                 next : "htmltag"
+             }, {
+                 token : "meta.tag",
+                 regex : ">",
+             }, {
+                 token : 'text',
+                 regex : "(?:media|type|href)"
+             }, {
+                 token : 'string',
+                 regex : '=".*?"'
+             }, {
+                 token : "paren.lparen",
+                 regex : "\{",
+                 next : "cssdeclaration",
+             }, {
+                 token : "keyword",
+                 regex : "#[A-Za-z0-9\-\_\.]+"
+             }, {
+                 token : "variable",
+                 regex : "\\.[A-Za-z0-9\-\_\.]+"
+             }, {
+                 token : "constant",
+                 regex : "[A-Za-z0-9]+"
+             }
+         ],
+         "cssdeclaration" : [
+             {
+                 token : "support.type",
+                 regex : "[\-a-zA-Z]+",
+                 next  : "cssvalue"
+             }, 
+             {
+                 token : "paren.rparen",
+                 regex : '\}',
+                 next : "css"
+             }
+         ],
+         "cssvalue" : [
+               {
+                   token : "text",
+                   regex : "\:"
+               }, 
+               {
+                   token : "constant",
+                   regex : "#[0-9a-zA-Z]+"
+               },
+               {
+                   token : "text",
+                   regex : "[\-\_0-9a-zA-Z\"' ,%]+"
+               },
+               {
+                   token : "text",
+                   regex : ";",
+                   next : "cssdeclaration"
+               }
+         ],
     };
 
     this.embedRules(DocCommentHighlightRules, "doc-",
@@ -17083,6 +17415,7 @@ oop.inherits(PhpHighlightRules, TextHighlightRules);
 exports.PhpHighlightRules = PhpHighlightRules;
 });
 define('ace/mode/powershell', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/powershell_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/mode/behaviour/cstyle', 'ace/mode/folding/cstyle'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
@@ -17139,11 +17472,11 @@ oop.inherits(Mode, TextMode);
 
 exports.Mode = Mode;
 });
-define('ace/mode/powershell_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+define('ace/mode/powershell_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var lang = require("../lib/lang");
-var DocCommentHighlightRules = require("./doc_comment_highlight_rules").DocCommentHighlightRules;
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
 
 var PowershellHighlightRules = function() {
@@ -17315,18 +17648,19 @@ exports.PowershellHighlightRules = PowershellHighlightRules;
 *
 * ***** END LICENSE BLOCK ***** */
 
-define('ace/mode/python', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/python_highlight_rules', 'ace/mode/folding/python', 'ace/range'], function(require, exports, module) {
+define('ace/mode/python', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/python_highlight_rules', 'ace/mode/folding/pythonic', 'ace/range'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
 var Tokenizer = require("../tokenizer").Tokenizer;
 var PythonHighlightRules = require("./python_highlight_rules").PythonHighlightRules;
-var PythonFoldMode = require("./folding/python").FoldMode;
+var PythonFoldMode = require("./folding/pythonic").FoldMode;
 var Range = require("../range").Range;
 
 var Mode = function() {
     this.$tokenizer = new Tokenizer(new PythonHighlightRules().getRules());
-    this.foldingRules = new PythonFoldMode();
+    this.foldingRules = new PythonFoldMode("\\:");
 };
 oop.inherits(Mode, TextMode);
 
@@ -17465,6 +17799,7 @@ exports.Mode = Mode;
  */
 
 define('ace/mode/python_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var lang = require("../lib/lang");
@@ -17604,59 +17939,8 @@ oop.inherits(PythonHighlightRules, TextHighlightRules);
 
 exports.PythonHighlightRules = PythonHighlightRules;
 });
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Ajax.org Code Editor (ACE).
- *
- * The Initial Developer of the Original Code is
- * Ajax.org B.V.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *      Fabian Jakobs <fabian AT ajax DOT org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
-
-define('ace/mode/folding/python', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/folding/fold_mode'], function(require, exports, module) {
-
-var oop = require("../../lib/oop");
-var BaseFoldMode = require("./fold_mode").FoldMode;
-
-var FoldMode = exports.FoldMode = function() {};
-oop.inherits(FoldMode, BaseFoldMode);
-
-(function() {
-
-    this.foldingStartMarker = /\:(:?\s*)?(:?#.*)?$/;
-    this.getFoldWidgetRange = BaseFoldMode.prototype.indentationBlock;
-
-}).call(FoldMode.prototype);
-
-});define('ace/mode/scala', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/javascript', 'ace/tokenizer', 'ace/mode/scala_highlight_rules'], function(require, exports, module) {
+define('ace/mode/scala', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/javascript', 'ace/tokenizer', 'ace/mode/scala_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var JavaScriptMode = require("./javascript").Mode;
@@ -17681,6 +17965,7 @@ oop.inherits(Mode, JavaScriptMode);
 exports.Mode = Mode;
 });
 define('ace/mode/scala_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/doc_comment_highlight_rules', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var lang = require("../lib/lang");
@@ -17861,6 +18146,7 @@ exports.ScalaHighlightRules = ScalaHighlightRules;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/scss', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/scss_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/mode/folding/cstyle'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
@@ -17946,6 +18232,7 @@ exports.Mode = Mode;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/scss_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var lang = require("../lib/lang");
@@ -18250,6 +18537,7 @@ exports.ScssHighlightRules = ScssHighlightRules;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/ruby', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/ruby_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/range'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
@@ -18268,7 +18556,6 @@ oop.inherits(Mode, TextMode);
 
     this.toggleCommentLines = function(state, doc, startRow, endRow) {
         var outdent = true;
-        var outentedRows = [];
         var re = /^(\s*)#/;
 
         for (var i=startRow; i<= endRow; i++) {
@@ -18300,7 +18587,6 @@ oop.inherits(Mode, TextMode);
 
         var tokenizedLine = this.$tokenizer.getLineTokens(line, state);
         var tokens = tokenizedLine.tokens;
-        var endState = tokenizedLine.state;
 
         if (tokens.length && tokens[tokens.length-1].type == "comment") {
             return indent;
@@ -18367,6 +18653,7 @@ exports.Mode = Mode;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/ruby_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var lang = require("../lib/lang");
@@ -18542,6 +18829,7 @@ exports.RubyHighlightRules = RubyHighlightRules;
 * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/sql', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/sql_highlight_rules', 'ace/range'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
@@ -18608,11 +18896,10 @@ exports.Mode = Mode;
  * the provisions above, a recipient may use your version of this file under
  * the terms of any one of the MPL, the GPL or the LGPL.
  *
- * ***** END LICENSE BLOCK *****
- *
- */
+ * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/sql_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var lang = require("../lib/lang");
@@ -18718,6 +19005,7 @@ exports.SqlHighlightRules = SqlHighlightRules;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/SVG', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/xml', 'ace/mode/javascript', 'ace/tokenizer', 'ace/mode/svg_highlight_rules', 'ace/mode/folding/mixed', 'ace/mode/folding/xml', 'ace/mode/folding/cstyle'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var XmlMode = require("./xml").Mode;
@@ -18795,6 +19083,7 @@ exports.Mode = Mode;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/svg_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/javascript_highlight_rules', 'ace/mode/xml_highlight_rules', 'ace/mode/xml_util'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var JavaScriptHighlightRules = require("./javascript_highlight_rules").JavaScriptHighlightRules;
@@ -18864,26 +19153,23 @@ exports.SvgHighlightRules = SvgHighlightRules;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/mode/textile', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/textile_highlight_rules', 'ace/mode/matching_brace_outdent', 'ace/range'], function(require, exports, module) {
+define('ace/mode/textile', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text', 'ace/tokenizer', 'ace/mode/textile_highlight_rules', 'ace/mode/matching_brace_outdent'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var TextMode = require("./text").Mode;
 var Tokenizer = require("../tokenizer").Tokenizer;
 var TextileHighlightRules = require("./textile_highlight_rules").TextileHighlightRules;
 var MatchingBraceOutdent = require("./matching_brace_outdent").MatchingBraceOutdent;
-var Range = require("../range").Range;
 
-var Mode = function()
-{
+var Mode = function() {
     this.$tokenizer = new Tokenizer(new TextileHighlightRules().getRules());
     this.$outdent = new MatchingBraceOutdent();
 };
 oop.inherits(Mode, TextMode);
 
-(function()
-{
-    this.getNextLineIndent = function(state, line, tab)
-    {
+(function() {
+    this.getNextLineIndent = function(state, line, tab) {
         if (state == "intag")
             return tab;
         
@@ -18941,6 +19227,7 @@ exports.Mode = Mode;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/mode/textile_highlight_rules', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/mode/text_highlight_rules'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var TextHighlightRules = require("./text_highlight_rules").TextHighlightRules;
@@ -18949,7 +19236,6 @@ var TextileHighlightRules = function() {
     this.$rules = {
         "start" : [
             {
-                token : "keyword", // start of block
                 token : function(value) {
                     if (value.match(/^h\d$/))
                         return "markup.heading." + value.charAt(1);
@@ -19885,10 +20171,10 @@ define("text!kitchen-sink/docs/latex.tex", [], "\\usepackage{amsmath}\n" +
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/split', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/dom', 'ace/lib/lang', 'ace/lib/event_emitter', 'ace/editor', 'ace/virtual_renderer', 'ace/edit_session'], function(require, exports, module) {
+define('ace/split', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/lang', 'ace/lib/event_emitter', 'ace/editor', 'ace/virtual_renderer', 'ace/edit_session'], function(require, exports, module) {
+"use strict";
 
 var oop = require("./lib/oop");
-var dom = require("./lib/dom");
 var lang = require("./lib/lang");
 var EventEmitter = require("./lib/event_emitter").EventEmitter;
 
@@ -19925,7 +20211,6 @@ var Split = function(container, theme, splits) {
         el.className = this.$editorCSS;
         el.style.cssText = "position: absolute; top:0px; bottom:0px";
         this.$container.appendChild(el);
-        var session = new EditSession("");
         var editor = new Editor(new Renderer(el, this.$theme));
 
         editor.on("focus", function() {
@@ -20038,7 +20323,7 @@ var Split = function(container, theme, splits) {
     };
 
     this.setSession = function(session, idx) {
-        var editor
+        var editor;
         if (idx == null) {
             editor = this.$cEditor;
         } else {
@@ -20184,7 +20469,8 @@ exports.Split = Split;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/editor', ['require', 'exports', 'module' , 'ace/lib/fixoldbrowsers', 'ace/lib/oop', 'ace/lib/lang', 'ace/lib/useragent', 'ace/keyboard/textinput', 'ace/mouse/mouse_handler', 'ace/keyboard/keybinding', 'ace/edit_session', 'ace/search', 'ace/range', 'ace/lib/event_emitter', 'ace/commands/command_manager', 'ace/commands/default_commands'], function(require, exports, module) {
+define('ace/editor', ['require', 'exports', 'module' , 'ace/lib/fixoldbrowsers', 'ace/lib/oop', 'ace/lib/lang', 'ace/lib/useragent', 'ace/keyboard/textinput', 'ace/mouse/mouse_handler', 'ace/mouse/fold_handler', 'ace/keyboard/keybinding', 'ace/edit_session', 'ace/search', 'ace/range', 'ace/lib/event_emitter', 'ace/commands/command_manager', 'ace/commands/default_commands'], function(require, exports, module) {
+"use strict";
 
 require("./lib/fixoldbrowsers");
 
@@ -20193,6 +20479,7 @@ var lang = require("./lib/lang");
 var useragent = require("./lib/useragent");
 var TextInput = require("./keyboard/textinput").TextInput;
 var MouseHandler = require("./mouse/mouse_handler").MouseHandler;
+var FoldHandler = require("./mouse/fold_handler").FoldHandler;
 //var TouchHandler = require("./touch_handler").TouchHandler;
 var KeyBinding = require("./keyboard/keybinding").KeyBinding;
 var EditSession = require("./edit_session").EditSession;
@@ -20206,6 +20493,9 @@ var Editor = function(renderer, session) {
     var container = renderer.getContainerElement();
     this.container = container;
     this.renderer = renderer;
+    
+    renderer.on("scrollX", this._emit.bind(this, "scrollX"));
+    renderer.on("scrollY", this._emit.bind(this, "scrollY"));
 
     this.textInput  = new TextInput(renderer.getTextAreaContainer(), this);
     this.keyBinding = new KeyBinding(this);
@@ -20215,6 +20505,7 @@ var Editor = function(renderer, session) {
         //this.$mouseHandler = new TouchHandler(this);
     } else {
         this.$mouseHandler = new MouseHandler(this);
+        new FoldHandler(this);
     }
 
     this.$blockScrolling = 0;
@@ -20229,30 +20520,6 @@ var Editor = function(renderer, session) {
 (function(){
 
     oop.implement(this, EventEmitter);
-
-    this.$forwardEvents = {
-        gutterclick: 1,
-        gutterdblclick: 1
-    };
-
-    this.$originalAddEventListener = this.addEventListener;
-    this.$originalRemoveEventListener = this.removeEventListener;
-
-    this.addEventListener = function(eventName, callback) {
-        if (this.$forwardEvents[eventName]) {
-            return this.renderer.addEventListener(eventName, callback);
-        } else {
-            return this.$originalAddEventListener(eventName, callback);
-        }
-    };
-
-    this.removeEventListener = function(eventName, callback) {
-        if (this.$forwardEvents[eventName]) {
-            return this.renderer.removeEventListener(eventName, callback);
-        } else {
-            return this.$originalRemoveEventListener(eventName, callback);
-        }
-    };
 
     this.setKeyboardHandler = function(keyboardHandler) {
         this.keyBinding.setKeyboardHandler(keyboardHandler);
@@ -20345,7 +20612,7 @@ var Editor = function(renderer, session) {
         this.renderer.scrollToRow(session.getScrollTopRow());
         this.renderer.updateFull();
 
-        this._dispatchEvent("changeSession", {
+        this._emit("changeSession", {
             session: session,
             oldSession: oldSession
         });
@@ -20429,13 +20696,13 @@ var Editor = function(renderer, session) {
     this.onFocus = function() {
         this.renderer.showCursor();
         this.renderer.visualizeFocus();
-        this._dispatchEvent("focus");
+        this._emit("focus");
     };
 
     this.onBlur = function() {
         this.renderer.hideCursor();
         this.renderer.visualizeBlur();
-        this._dispatchEvent("blur");
+        this._emit("blur");
     };
 
     this.onDocumentChange = function(e) {
@@ -20449,7 +20716,7 @@ var Editor = function(renderer, session) {
             lastRow = Infinity;
         this.renderer.updateLines(range.start.row, lastRow);
 
-        this._dispatchEvent("change", e);
+        this._emit("change", e);
 
         // update cursor because tab characters can influence the cursor position
         this.onCursorChange();
@@ -20697,13 +20964,21 @@ var Editor = function(renderer, session) {
         return this.$mouseHandler.getScrollSpeed();
     };
 
+    this.setDragDelay = function(dragDelay) {
+        this.$mouseHandler.setDragDelay(dragDelay);
+    };
+
+    this.getDragDelay = function() {
+        return this.$mouseHandler.getDragDelay();
+    };
+
     this.$selectionStyle = "line";
     this.setSelectionStyle = function(style) {
         if (this.$selectionStyle == style) return;
 
         this.$selectionStyle = style;
         this.onSelectionChange();
-        this._dispatchEvent("changeSelectionStyle", {data: style});
+        this._emit("changeSelectionStyle", {data: style});
     };
 
     this.getSelectionStyle = function() {
@@ -20792,6 +21067,7 @@ var Editor = function(renderer, session) {
         this.$showFoldWidgets = show;
         this.renderer.updateFull();
     };
+    
     this.getShowFoldWidgets = function() {
         return this.renderer.$gutterLayer.getShowFoldWidgets();
     };
@@ -21161,7 +21437,24 @@ var Editor = function(renderer, session) {
         this.selection.moveCursorToPosition(pos);
     };
 
-
+    this.jumpToMatching = function() {
+        var cursor = this.getCursorPosition();
+        var pos = this.session.findMatchingBracket(cursor);
+        if (!pos) {
+            cursor.column += 1;
+            pos = this.session.findMatchingBracket(cursor);
+        }
+        if (!pos) {
+            cursor.column -= 2;
+            pos = this.session.findMatchingBracket(cursor);
+        }
+        
+        if (pos) {
+            this.clearSelection();
+            this.moveCursorTo(pos.row, pos.column);
+        }
+    };
+    
     this.gotoLine = function(lineNumber, column) {
         this.selection.clearSelection();
         this.session.unfold({row: lineNumber - 1, column: column || 0});
@@ -21393,6 +21686,7 @@ exports.Editor = Editor;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/keyboard/textinput', ['require', 'exports', 'module' , 'ace/lib/event', 'ace/lib/useragent', 'ace/lib/dom'], function(require, exports, module) {
+"use strict";
 
 var event = require("../lib/event");
 var useragent = require("../lib/useragent");
@@ -21405,7 +21699,8 @@ var TextInput = function(parentNode, host) {
         text.setAttribute("x-palm-disable-auto-cap", true);
         
     text.style.left = "-10000px";
-    parentNode.appendChild(text);
+    text.style.position = "fixed";
+    parentNode.insertBefore(text, parentNode.firstChild);
 
     var PLACEHOLDER = String.fromCharCode(0);
     sendText();
@@ -21544,7 +21839,7 @@ var TextInput = function(parentNode, host) {
     if ("onbeforecopy" in text && typeof clipboardData !== "undefined") {
         event.addListener(text, "beforecopy", function(e) {
             var copyText = host.getCopyText();
-            if(copyText)
+            if (copyText)
                 clipboardData.setData("Text", copyText);
             else
                 e.preventDefault();
@@ -21668,16 +21963,20 @@ exports.TextInput = TextInput;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/mouse/mouse_handler', ['require', 'exports', 'module' , 'ace/lib/event', 'ace/mouse/default_handlers', 'ace/mouse/mouse_event'], function(require, exports, module) {
+define('ace/mouse/mouse_handler', ['require', 'exports', 'module' , 'ace/lib/event', 'ace/mouse/default_handlers', 'ace/mouse/default_gutter_handler', 'ace/mouse/mouse_event'], function(require, exports, module) {
+"use strict";
 
 var event = require("../lib/event");
 var DefaultHandlers = require("./default_handlers").DefaultHandlers;
+var DefaultGutterHandler = require("./default_gutter_handler").GutterHandler;
 var MouseEvent = require("./mouse_event").MouseEvent;
 
 var MouseHandler = function(editor) {
     this.editor = editor;
     
-    this.defaultHandlers = new DefaultHandlers(editor);
+    new DefaultHandlers(editor);
+    new DefaultGutterHandler(editor);
+    
     event.addListener(editor.container, "mousedown", function(e) {
         editor.focus();
         return event.preventDefault(e);
@@ -21687,13 +21986,19 @@ var MouseHandler = function(editor) {
     });
 
     var mouseTarget = editor.renderer.getMouseEventTarget();
-    event.addListener(mouseTarget, "mousedown", this.onMouseDown.bind(this));
-    event.addListener(mouseTarget, "click", this.onMouseClick.bind(this));
-    event.addListener(mouseTarget, "mousemove", this.onMouseMove.bind(this));
-    event.addMultiMouseDownListener(mouseTarget, 0, 2, 500, this.onMouseDoubleClick.bind(this));
-    event.addMultiMouseDownListener(mouseTarget, 0, 3, 600, this.onMouseTripleClick.bind(this));
-    event.addMultiMouseDownListener(mouseTarget, 0, 4, 600, this.onMouseQuadClick.bind(this));
-    event.addMouseWheelListener(editor.container, this.onMouseWheel.bind(this));
+    event.addListener(mouseTarget, "mousedown", this.onMouseEvent.bind(this, "mousedown"));
+    event.addListener(mouseTarget, "click", this.onMouseEvent.bind(this, "click"));
+    event.addListener(mouseTarget, "mousemove", this.onMouseMove.bind(this, "mousemove"));
+    event.addMultiMouseDownListener(mouseTarget, 0, 2, 500, this.onMouseEvent.bind(this, "dblclick"));
+    event.addMultiMouseDownListener(mouseTarget, 0, 3, 600, this.onMouseEvent.bind(this, "tripleclick"));
+    event.addMultiMouseDownListener(mouseTarget, 0, 4, 600, this.onMouseEvent.bind(this, "quadclick"));
+    event.addMouseWheelListener(editor.container, this.onMouseWheel.bind(this, "mousewheel"));
+    
+    var gutterEl = editor.renderer.$gutter;
+    event.addListener(gutterEl, "mousedown", this.onMouseEvent.bind(this, "guttermousedown"));
+    event.addListener(gutterEl, "click", this.onMouseEvent.bind(this, "gutterclick"));
+    event.addListener(gutterEl, "dblclick", this.onMouseEvent.bind(this, "gutterdblclick"));
+    event.addListener(gutterEl, "mousemove", this.onMouseMove.bind(this, "gutter"));
 };
 
 (function() {
@@ -21707,42 +22012,35 @@ var MouseHandler = function(editor) {
         return this.$scrollSpeed;
     };
 
-    this.onMouseDown = function(e) {
-        this.editor._dispatchEvent("mousedown", new MouseEvent(e, this.editor));
-    };
-
-    this.onMouseClick = function(e) {
-        this.editor._dispatchEvent("click", new MouseEvent(e, this.editor));
+    this.onMouseEvent = function(name, e) {
+        this.editor._emit(name, new MouseEvent(e, this.editor));
     };
     
-    this.onMouseMove = function(e) {
+    this.$dragDelay = 250;
+    this.setDragDelay = function(dragDelay) {
+        this.$dragDelay = dragDelay;
+    };
+
+    this.getDragDelay = function() {
+        return this.$dragDelay;
+    };
+
+    this.onMouseMove = function(name, e) {
         // optimization, because mousemove doesn't have a default handler.
-        var listeners = this.editor._eventRegistry && this.editor._eventRegistry["mousemove"];
+        var listeners = this.editor._eventRegistry && this.editor._eventRegistry.mousemove;
         if (!listeners || !listeners.length)
             return;
 
-        this.editor._dispatchEvent("mousemove", new MouseEvent(e, this.editor));
+        this.editor._emit(name, new MouseEvent(e, this.editor));
     };
 
-    this.onMouseDoubleClick = function(e) {
-        this.editor._dispatchEvent("dblclick", new MouseEvent(e, this.editor));
-    };
-
-    this.onMouseTripleClick = function(e) {
-        this.editor._dispatchEvent("tripleclick", new MouseEvent(e, this.editor));
-    };
-
-    this.onMouseQuadClick = function(e) {
-        this.editor._dispatchEvent("quadclick", new MouseEvent(e, this.editor));
-    };
-
-    this.onMouseWheel = function(e) {
+    this.onMouseWheel = function(name, e) {
         var mouseEvent = new MouseEvent(e, this.editor);
         mouseEvent.speed = this.$scrollSpeed * 2;
         mouseEvent.wheelX = e.wheelX;
         mouseEvent.wheelY = e.wheelY;
         
-        this.editor._dispatchEvent("mousewheel", mouseEvent);
+        this.editor._emit(name, mouseEvent);
     };
 
 }).call(MouseHandler.prototype);
@@ -21788,18 +22086,17 @@ exports.MouseHandler = MouseHandler;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/mouse/default_handlers', ['require', 'exports', 'module' , 'ace/lib/event', 'ace/lib/dom', 'ace/lib/event_emitter', 'ace/lib/browser_focus'], function(require, exports, module) {
+define('ace/mouse/default_handlers', ['require', 'exports', 'module' , 'ace/lib/event', 'ace/lib/dom', 'ace/lib/browser_focus'], function(require, exports, module) {
+"use strict";
 
 var event = require("../lib/event");
 var dom = require("../lib/dom");
-var EventEmitter = require("../lib/event_emitter").EventEmitter;
 var BrowserFocus = require("../lib/browser_focus").BrowserFocus;
 
 var STATE_UNKNOWN = 0;
 var STATE_SELECT = 1;
 var STATE_DRAG = 2;
 
-var DRAG_TIMER = 250; // milliseconds
 var DRAG_OFFSET = 5; // pixels
 
 function DefaultHandlers(editor) {
@@ -21846,19 +22143,11 @@ function DefaultHandlers(editor) {
             if (selectionEmpty) {
                 editor.moveCursorToPosition(pos);
             }
-            if(button == 2) {
+            if (button == 2) {
                 editor.textInput.onContextMenu({x: ev.clientX, y: ev.clientY}, selectionEmpty);
                 event.capture(editor.container, function(){}, editor.textInput.onContextMenuClose);
             }
             return;
-        }
-        else {
-            // Select the fold as the user clicks it.
-            var fold = editor.session.getFoldAt(pos.row, pos.column, 1);
-            if (fold) {
-                editor.selection.setSelectionRange(fold.range);
-                return;
-            }
         }
 
         if (!inSelection) {
@@ -21868,9 +22157,8 @@ function DefaultHandlers(editor) {
         }
 
         var mousePageX = pageX, mousePageY = pageY;
-        var overwrite = editor.getOverwrite();
         var mousedownTime = (new Date()).getTime();
-        var dragCursor, dragRange;
+        var dragCursor, dragRange, dragSelectionMarker;
 
         var onMouseSelection = function(e) {
             mousePageX = event.getDocumentX(e);
@@ -21933,7 +22221,7 @@ function DefaultHandlers(editor) {
                     cursor.row = Math.max(0, Math.min(cursor.row, editor.session.getLength()-1));
                     onStartSelect(cursor);
                 }
-                else if ((time - mousedownTime) > DRAG_TIMER) {
+                else if ((time - mousedownTime) > editor.getDragDelay()) {
                     state = STATE_DRAG;
                     dragRange = editor.getSelectionRange();
                     var style = editor.getSelectionStyle();
@@ -22007,19 +22295,9 @@ function DefaultHandlers(editor) {
         var pos = ev.getDocumentPosition();
         var editor = this.editor;
         
-        // If the user dclicked on a fold, then expand it.
-        var fold = editor.session.getFoldAt(pos.row, pos.column, 1);
-        if (fold) {
-            if (ev.getAccelKey())
-                editor.session.removeFold(fold);
-            else
-                editor.session.expandFold(fold);
-        }
-        else {
-            editor.moveCursorToPosition(pos);
-            editor.selection.selectWord();
-            this.$clickSelection = editor.getSelectionRange();
-        }
+        editor.moveCursorToPosition(pos);
+        editor.selection.selectWord();
+        this.$clickSelection = editor.getSelectionRange();
     };
     
     this.onTripleClick = function(ev) {
@@ -22096,6 +22374,7 @@ function calcDistance(ax, ay, bx, by) {
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/lib/browser_focus', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/event', 'ace/lib/event_emitter'], function(require, exports, module) {
+"use strict";
 
 var oop = require("./oop");
 var event = require("./event");
@@ -22197,10 +22476,63 @@ exports.BrowserFocus = BrowserFocus;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/mouse/mouse_event', ['require', 'exports', 'module' , 'ace/lib/event', 'ace/lib/dom'], function(require, exports, module) {
+define('ace/mouse/default_gutter_handler', ['require', 'exports', 'module' ], function(require, exports, module) {
+"use strict";
+
+function GutterHandler(editor) {
+    editor.setDefaultHandler("gutterclick", function(e) {
+        var row = e.getDocumentPosition().row;
+        var selection = editor.session.selection;
+        
+        selection.moveCursorTo(row, 0);
+        selection.selectLine();
+    });
+}
+
+exports.GutterHandler = GutterHandler;
+
+});/* vim:ts=4:sts=4:sw=4:
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Ajax.org Code Editor (ACE).
+ *
+ * The Initial Developer of the Original Code is
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *      Fabian Jakobs <fabian AT ajax DOT org>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('ace/mouse/mouse_event', ['require', 'exports', 'module' , 'ace/lib/event'], function(require, exports, module) {
+"use strict";
 
 var event = require("../lib/event");
-var dom = require("../lib/dom");
 
 /**
  * Custom Ace mouse event
@@ -22232,6 +22564,11 @@ var MouseEvent = exports.MouseEvent = function(domEvent, editor) {
     this.preventDefault = function() {
         event.preventDefault(this.domEvent);
         this.defaultPrevented = true;
+    };
+    
+    this.stop = function() {
+        this.stopPropagation();
+        this.preventDefault();
     };
 
     /**
@@ -22299,7 +22636,77 @@ var MouseEvent = exports.MouseEvent = function(domEvent, editor) {
 }).call(MouseEvent.prototype);
 
 });
-/* ***** BEGIN LICENSE BLOCK *****
+/* vim:ts=4:sts=4:sw=4:
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Ajax.org Code Editor (ACE).
+ *
+ * The Initial Developer of the Original Code is
+ * Ajax.org B.V.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *      Fabian Jakobs <fabian AT ajax DOT org>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+define('ace/mouse/fold_handler', ['require', 'exports', 'module' ], function(require, exports, module) {
+"use strict";
+
+function FoldHandler(editor) {
+    
+    editor.on("click", function(e) {
+        var position = e.getDocumentPosition();
+        var session = editor.session;
+        
+        // If the user dclicked on a fold, then expand it.
+        var fold = session.getFoldAt(position.row, position.column, 1);
+        if (fold) {
+            if (e.getAccelKey())
+                session.removeFold(fold);
+            else
+                session.expandFold(fold);
+                
+            e.stop();
+        }
+    });
+    
+    editor.on("gutterclick", function(e) {
+        if (e.domEvent.target.className.indexOf("ace_fold-widget") != -1) {
+            var row = e.getDocumentPosition().row;
+            editor.session.onFoldWidgetClick(row, e.domEvent);
+            e.stop();
+        }
+    });
+}
+
+exports.FoldHandler = FoldHandler;
+
+});/* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
  * The contents of this file are subject to the Mozilla Public License Version
@@ -22339,6 +22746,7 @@ var MouseEvent = exports.MouseEvent = function(domEvent, editor) {
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/keyboard/keybinding', ['require', 'exports', 'module' , 'ace/lib/keys', 'ace/lib/event', 'ace/commands/default_commands'], function(require, exports, module) {
+"use strict";
 
 var keyUtil  = require("../lib/keys");
 var event = require("../lib/event");
@@ -22467,6 +22875,7 @@ exports.KeyBinding = KeyBinding;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/commands/default_commands', ['require', 'exports', 'module' , 'ace/lib/lang'], function(require, exports, module) {
+"use strict";
 
 var lang = require("../lib/lang");
 
@@ -22491,7 +22900,7 @@ exports.commands = [{
     name: "gotoline",
     bindKey: bindKey("Ctrl-L", "Command-L"),
     exec: function(editor) {
-        var line = parseInt(prompt("Enter line number:"));
+        var line = parseInt(prompt("Enter line number:"), 10);
         if (!isNaN(line)) {
             editor.gotoLine(line);
         }
@@ -22808,6 +23217,10 @@ exports.commands = [{
     name: "tolowercase",
     bindKey: bindKey("Ctrl-Shift-U", "Ctrl-Shift-U"),
     exec: function(editor) { editor.toLowerCase(); }
+}, {
+    name: "jumptomatching",
+    bindKey: bindKey("Ctrl-Shift-P", "Ctrl-Shift-P"),
+    exec: function(editor) { editor.jumpToMatching(); }
 }];
 
 });
@@ -22851,6 +23264,7 @@ exports.commands = [{
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/search', ['require', 'exports', 'module' , 'ace/lib/lang', 'ace/lib/oop', 'ace/range'], function(require, exports, module) {
+"use strict";
 
 var lang = require("./lib/lang");
 var oop = require("./lib/oop");
@@ -23154,6 +23568,7 @@ Search.SELECTION = 2;
 exports.Search = Search;
 });
 define('ace/commands/command_manager', ['require', 'exports', 'module' , 'ace/lib/keys'], function(require, exports, module) {
+"use strict";
 
 var keyUtil = require("../lib/keys");
 
@@ -23301,8 +23716,13 @@ var CommandManager = function(platform, commands) {
         if (this.recording) {
             this.macro.pop();
             this.exec = this.normal_exec;
+
+            if (!this.macro.length)
+                this.macro = this.oldMacro;
+
             return this.recording = false;
         }
+        this.oldMacro = this.macro;
         this.macro = [];
         this.normal_exec = this.exec;
         this.exec = function(command, editor, args) {
@@ -23313,10 +23733,10 @@ var CommandManager = function(platform, commands) {
     };
 
     this.replay = function(editor) {
-        if (this.$inReplay)
+        if (this.$inReplay || !this.macro)
             return;
 
-        if (!this.macro || this.recording)
+        if (this.recording)
             return this.toggleRecording();
 
         try {
@@ -23387,11 +23807,11 @@ exports.CommandManager = CommandManager;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/virtual_renderer', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/dom', 'ace/lib/event', 'ace/lib/useragent', 'ace/layer/gutter', 'ace/layer/marker', 'ace/layer/text', 'ace/layer/cursor', 'ace/scrollbar', 'ace/renderloop', 'ace/lib/event_emitter', 'text!ace/css/editor.css'], function(require, exports, module) {
+define('ace/virtual_renderer', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/dom', 'ace/lib/useragent', 'ace/layer/gutter', 'ace/layer/marker', 'ace/layer/text', 'ace/layer/cursor', 'ace/scrollbar', 'ace/renderloop', 'ace/lib/event_emitter', 'text!ace/css/editor.css'], function(require, exports, module) {
+"use strict";
 
 var oop = require("./lib/oop");
 var dom = require("./lib/dom");
-var event = require("./lib/event");
 var useragent = require("./lib/useragent");
 var GutterLayer = require("./layer/gutter").Gutter;
 var MarkerLayer = require("./layer/marker").Marker;
@@ -23411,10 +23831,7 @@ var VirtualRenderer = function(container, theme) {
 //    // Imports CSS once per DOM document ('ace_editor' serves as an identifier).
 //    dom.importCssString(editorCss, "ace_editor", container.ownerDocument);
     
-    // Chrome has some strange rendering issues if this is not done async
-    setTimeout(function() {
-        dom.addCssClass(container, "ace_editor");
-    }, 0)
+    dom.addCssClass(container, "ace_editor");
 
     this.setTheme(theme);
 
@@ -23431,6 +23848,8 @@ var VirtualRenderer = function(container, theme) {
     this.scroller.appendChild(this.content);
 
     this.$gutterLayer = new GutterLayer(this.$gutter);
+    this.$gutterLayer.on("changeGutterWidth", this.onResize.bind(this, true));    
+    
     this.$markerBack = new MarkerLayer(this.content);
 
     var textLayer = this.$textLayer = new TextLayer(this.content);
@@ -23467,8 +23886,6 @@ var VirtualRenderer = function(container, theme) {
 
         _self.$loop.schedule(_self.CHANGE_FULL);
     });
-    event.addListener(this.$gutter, "click", this.$onGutterClick.bind(this));
-    event.addListener(this.$gutter, "dblclick", this.$onGutterClick.bind(this));
 
     this.$size = {
         width: 0,
@@ -23596,7 +24013,7 @@ var VirtualRenderer = function(container, theme) {
 
             var gutterWidth = this.showGutter ? this.$gutter.offsetWidth : 0;
             this.scroller.style.left = gutterWidth + "px";
-            size.scrollerWidth = Math.max(0, width - gutterWidth - this.scrollBar.getWidth())
+            size.scrollerWidth = Math.max(0, width - gutterWidth - this.scrollBar.getWidth());
             this.scroller.style.width = size.scrollerWidth + "px";
 
             if (this.session.getUseWrapMode() && this.adjustWrapLimit() || force)
@@ -23606,23 +24023,10 @@ var VirtualRenderer = function(container, theme) {
         this.$loop.schedule(changes);
     };
 
-    this.adjustWrapLimit = function(){
+    this.adjustWrapLimit = function() {
         var availableWidth = this.$size.scrollerWidth - this.$padding * 2;
-        var limit = Math.floor(availableWidth / this.characterWidth) - 1;
+        var limit = Math.floor(availableWidth / this.characterWidth);
         return this.session.adjustWrapLimit(limit);
-    };
-
-    this.$onGutterClick = function(e) {
-        var pageY = event.getDocumentY(e);
-        var row = this.screenToTextCoordinates(0, pageY).row;
-
-        if (e.target.className.indexOf('ace_fold-widget') != -1)
-            return this.session.onFoldWidgetClick(row, e);
-
-        this._dispatchEvent("gutter" + e.type, {
-            row: row,
-            htmlEvent: e
-        });
     };
 
     this.setShowInvisibles = function(showInvisibles) {
@@ -23682,7 +24086,7 @@ var VirtualRenderer = function(container, theme) {
         }
 
         var style = this.$printMarginEl.style;
-        style.left = ((this.characterWidth * this.$printMarginColumn) + this.$padding * 2) + "px";
+        style.left = ((this.characterWidth * this.$printMarginColumn) + this.$padding) + "px";
         style.visibility = this.$showPrintMargin ? "visible" : "hidden";
     };
 
@@ -23703,6 +24107,9 @@ var VirtualRenderer = function(container, theme) {
         // this persists in IE9
         if (useragent.isIE)
             return;
+        
+        if (this.layerConfig.lastRow === 0)
+            return;
 
         var pos = this.$cursorLayer.getPixelPosition();
         if (!pos)
@@ -23711,7 +24118,7 @@ var VirtualRenderer = function(container, theme) {
         var bounds = this.content.getBoundingClientRect();
         var offset = this.layerConfig.offset;
 
-        textarea.style.left = (bounds.left + pos.left + this.$padding) + "px";
+        textarea.style.left = (bounds.left + pos.left) + "px";
         textarea.style.top = (bounds.top + pos.top - this.scrollTop + offset) + "px";
     };
 
@@ -23842,7 +24249,6 @@ var VirtualRenderer = function(container, theme) {
         var minHeight = this.$size.scrollerHeight + this.lineHeight;
 
         var longestLine = this.$getLongestLine();
-        var widthChanged = this.layerConfig.width != longestLine;
 
         var horizScroll = this.$horizScrollAlwaysVisible || this.$size.scrollerWidth - longestLine < 0;
         var horizScrollChanged = this.$horizScroll !== horizScroll;
@@ -23897,7 +24303,7 @@ var VirtualRenderer = function(container, theme) {
 
         this.$gutterLayer.element.style.marginTop = (-offset) + "px";
         this.content.style.marginTop = (-offset) + "px";
-        this.content.style.width = longestLine + "px";
+        this.content.style.width = longestLine + 2 * this.$padding + "px";
         this.content.style.height = minHeight + "px";
 
         // scroller.scrollWidth was smaller than scrollLeft we needed
@@ -23939,11 +24345,11 @@ var VirtualRenderer = function(container, theme) {
     };
 
     this.$getLongestLine = function() {
-        var charCount = this.session.getScreenWidth() + 1;
+        var charCount = this.session.getScreenWidth();
         if (this.$textLayer.showInvisibles)
             charCount += 1;
 
-        return Math.max(this.$size.scrollerWidth, Math.round(charCount * this.characterWidth));
+        return Math.max(this.$size.scrollerWidth - 2 * this.$padding, Math.round(charCount * this.characterWidth));
     };
 
     this.updateFrontMarkers = function() {
@@ -24009,12 +24415,14 @@ var VirtualRenderer = function(container, theme) {
         var scrollLeft = this.scroller.scrollLeft;
 
         if (scrollLeft > left) {
+            if (left < this.$padding + 2 * this.layerConfig.characterWidth)
+                left = 0;
             this.scrollToX(left);
         }
 
         if (scrollLeft + this.$size.scrollerWidth < left + this.characterWidth) {
-            if (left > this.layerConfig.width)
-                this.$desiredScrollLeft = left + 2 * this.characterWidth;
+            if (left > this.layerConfig.width + 2 * this.$padding)
+                this.$desiredScrollLeft = left;
             else
                 this.scrollToX(Math.round(left + this.characterWidth - this.$size.scrollerWidth));
         }
@@ -24060,6 +24468,7 @@ var VirtualRenderer = function(container, theme) {
         if (this.scrollTop !== scrollTop) {
             this.$loop.schedule(this.CHANGE_SCROLL);
             this.scrollTop = scrollTop;
+            this._emit("scrollY", scrollTop);
         }
     };
 
@@ -24068,6 +24477,7 @@ var VirtualRenderer = function(container, theme) {
             scrollLeft = 0;
 
         this.scroller.scrollLeft = scrollLeft;
+        this._emit("scrollX", this.scroller.scrollLeft);
     };
 
     this.scrollBy = function(deltaX, deltaY) {
@@ -24253,15 +24663,20 @@ exports.VirtualRenderer = VirtualRenderer;
  *
  * ***** END LICENSE BLOCK ***** */
 
-define('ace/layer/gutter', ['require', 'exports', 'module' , 'ace/lib/dom'], function(require, exports, module) {
+define('ace/layer/gutter', ['require', 'exports', 'module' , 'ace/lib/dom', 'ace/lib/oop', 'ace/lib/event_emitter'], function(require, exports, module) {
+"use strict";
 
 var dom = require("../lib/dom");
+var oop = require("../lib/oop");
+var EventEmitter = require("../lib/event_emitter").EventEmitter;
 
 var Gutter = function(parentEl) {
     this.element = dom.createElement("div");
     this.element.className = "ace_layer ace_gutter-layer";
     parentEl.appendChild(this.element);
     this.setShowFoldWidgets(this.$showFoldWidgets);
+    
+    this.gutterWidth = 0;
 
     this.$breakpoints = [];
     this.$annotations = [];
@@ -24270,6 +24685,8 @@ var Gutter = function(parentEl) {
 
 (function() {
 
+    oop.implement(this, EventEmitter);
+    
     this.setSession = function(session) {
         this.session = session;
     };
@@ -24278,7 +24695,7 @@ var Gutter = function(parentEl) {
         if (!this.$decorations[row])
             this.$decorations[row] = "";
         this.$decorations[row] += " ace_" + className;
-    }
+    };
 
     this.removeGutterDecoration = function(row, className){
         this.$decorations[row] = this.$decorations[row].replace(" ace_" + className, "");
@@ -24367,6 +24784,12 @@ var Gutter = function(parentEl) {
         }
         this.element = dom.setInnerHtml(this.element, html.join(""));
         this.element.style.height = config.minHeight + "px";
+        
+        var gutterWidth = this.element.offsetWidth;
+        if (gutterWidth !== this.gutterWidth) {
+            this.gutterWidth = gutterWidth;
+            this._emit("changeGutterWidth", gutterWidth);
+        }
     };
 
     this.$showFoldWidgets = true;
@@ -24378,6 +24801,7 @@ var Gutter = function(parentEl) {
 
         this.$showFoldWidgets = show;
     };
+    
     this.getShowFoldWidgets = function() {
         return this.$showFoldWidgets;
     };
@@ -24427,6 +24851,7 @@ exports.Gutter = Gutter;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/layer/marker', ['require', 'exports', 'module' , 'ace/range', 'ace/lib/dom'], function(require, exports, module) {
+"use strict";
 
 var Range = require("../range").Range;
 var dom = require("../lib/dom");
@@ -24529,10 +24954,11 @@ var Marker = function(parentEl) {
      * Draws a multi line marker, where lines span the full width
      */
      this.drawMultiLineMarker = function(stringBuilder, range, clazz, layerConfig, type) {
-        // from selection start to the end of the line
         var padding = type === "background" ? 0 : this.$padding;
+        var layerWidth = layerConfig.width + 2 * this.$padding - padding;
+        // from selection start to the end of the line
         var height = layerConfig.lineHeight;
-        var width = Math.round(layerConfig.width - (range.start.column * layerConfig.characterWidth));
+        var width = Math.round(layerWidth - (range.start.column * layerConfig.characterWidth));
         var top = this.$getTop(range.start.row, layerConfig);
         var left = Math.round(
             padding + range.start.column * layerConfig.characterWidth
@@ -24563,12 +24989,11 @@ var Marker = function(parentEl) {
         if (height < 0)
             return;
         top = this.$getTop(range.start.row + 1, layerConfig);
-        width = layerConfig.width;
 
         stringBuilder.push(
             "<div class='", clazz, "' style='",
             "height:", height, "px;",
-            "width:", width, "px;",
+            "width:", layerWidth, "px;",
             "top:", top, "px;",
             "left:", padding, "px;'></div>"
         );
@@ -24647,6 +25072,7 @@ exports.Marker = Marker;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/layer/text', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/dom', 'ace/lib/lang', 'ace/lib/useragent', 'ace/lib/event_emitter'], function(require, exports, module) {
+"use strict";
 
 var oop = require("../lib/oop");
 var dom = require("../lib/dom");
@@ -24690,7 +25116,7 @@ var Text = function(parentEl) {
         var size = this.$measureSizes();
         if (size && (this.$characterSize.width !== size.width || this.$characterSize.height !== size.height)) {
             this.$characterSize = size;
-            this._dispatchEvent("changeCharaterSize", {data: size});
+            this._emit("changeCharaterSize", {data: size});
         }
     };
 
@@ -24995,7 +25421,10 @@ var Text = function(parentEl) {
 
         if (!this.$textToken[token.type]) {
             var classes = "ace_" + token.type.replace(/\./g, " ace_");
-            stringBuilder.push("<span class='", classes, "'>", output, "</span>");
+            var style = "";
+            if (token.type == "fold")
+                style = " style='width:" + (token.value.length * this.config.characterWidth) + "px;' ";
+            stringBuilder.push("<span class='", classes, "'", style, ">", output, "</span>");
         }
         else {
             stringBuilder.push(output);
@@ -25007,7 +25436,6 @@ var Text = function(parentEl) {
         var chars = 0;
         var split = 0;
         var splitChars;
-        var characterWidth = this.config.characterWidth;
         var screenColumn = 0;
         var self = this;
 
@@ -25211,6 +25639,7 @@ exports.Text = Text;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/layer/cursor', ['require', 'exports', 'module' , 'ace/lib/dom'], function(require, exports, module) {
+"use strict";
 
 var dom = require("../lib/dom");
 
@@ -25356,6 +25785,7 @@ exports.Cursor = Cursor;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/scrollbar', ['require', 'exports', 'module' , 'ace/lib/oop', 'ace/lib/dom', 'ace/lib/event', 'ace/lib/event_emitter'], function(require, exports, module) {
+"use strict";
 
 var oop = require("./lib/oop");
 var dom = require("./lib/dom");
@@ -25386,7 +25816,7 @@ var ScrollBar = function(parent) {
     oop.implement(this, EventEmitter);
 
     this.onScroll = function() {
-        this._dispatchEvent("scroll", {data: this.element.scrollTop});
+        this._emit("scroll", {data: this.element.scrollTop});
     };
 
     this.getWidth = function() {
@@ -25448,6 +25878,7 @@ exports.ScrollBar = ScrollBar;
  * ***** END LICENSE BLOCK ***** */
 
 define('ace/renderloop', ['require', 'exports', 'module' , 'ace/lib/event'], function(require, exports, module) {
+"use strict";
 
 var event = require("./lib/event");
 
@@ -25469,9 +25900,11 @@ var RenderLoop = function(onRender, win) {
             var _self = this;
             event.nextTick(function() {
                 _self.pending = false;
-                var changes = _self.changes;
-                _self.changes = 0;
-                _self.onRender(changes);
+                var changes;
+                while (changes = _self.changes) {
+                    _self.changes = 0;
+                    _self.onRender(changes);
+                }
             }, this.window);
         }
     };
@@ -25517,24 +25950,35 @@ define("text!ace/css/editor.css", [], "@import url(//fonts.googleapis.com/css?fa
   "    z-index: 4;\n" +
   "}\n" +
   "\n" +
+  ".ace_gutter .ace_layer {\n" +
+  "    position: relative;\n" +
+  "    min-width: 54px;\n" +
+  "    text-align: right;\n" +
+  "}\n" +
+  "\n" +
   ".ace_gutter {\n" +
   "    position: absolute;\n" +
-  "    overflow-x: hidden;\n" +
-  "    overflow-y: hidden;\n" +
+  "    overflow : hidden;\n" +
   "    height: 100%;\n" +
+  "    width: auto;\n" +
   "    cursor: default;\n" +
+  "}\n" +
+  "\n" +
+  ".ace_gutter-cell {\n" +
+  "    padding-left: 19px;\n" +
+  "    padding-right: 6px;\n" +
   "}\n" +
   "\n" +
   ".ace_gutter-cell.ace_error {\n" +
   "    background-image: url(\"data:image/gif,GIF89a%10%00%10%00%D5%00%00%F5or%F5%87%88%F5nr%F4ns%EBmq%F5z%7F%DDJT%DEKS%DFOW%F1Yc%F2ah%CE(7%CE)8%D18E%DD%40M%F2KZ%EBU%60%F4%60m%DCir%C8%16(%C8%19*%CE%255%F1%3FR%F1%3FS%E6%AB%B5%CA%5DI%CEn%5E%F7%A2%9A%C9G%3E%E0a%5B%F7%89%85%F5yy%F6%82%80%ED%82%80%FF%BF%BF%E3%C4%C4%FF%FF%FF%FF%FF%FF%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00!%F9%04%01%00%00%25%00%2C%00%00%00%00%10%00%10%00%00%06p%C0%92pH%2C%1A%8F%C8%D2H%93%E1d4%23%E4%88%D3%09mB%1DN%B48%F5%90%40%60%92G%5B%94%20%3E%22%D2%87%24%FA%20%24%C5%06A%00%20%B1%07%02B%A38%89X.v%17%82%11%13q%10%0Fi%24%0F%8B%10%7BD%12%0Ei%09%92%09%0EpD%18%15%24%0A%9Ci%05%0C%18F%18%0B%07%04%01%04%06%A0H%18%12%0D%14%0D%12%A1I%B3%B4%B5IA%00%3B\");\n" +
   "    background-repeat: no-repeat;\n" +
-  "    background-position: 4px center;\n" +
+  "    background-position: 2px center;\n" +
   "}\n" +
   "\n" +
   ".ace_gutter-cell.ace_warning {\n" +
   "    background-image: url(\"data:image/gif,GIF89a%10%00%10%00%D5%00%00%FF%DBr%FF%DE%81%FF%E2%8D%FF%E2%8F%FF%E4%96%FF%E3%97%FF%E5%9D%FF%E6%9E%FF%EE%C1%FF%C8Z%FF%CDk%FF%D0s%FF%D4%81%FF%D5%82%FF%D5%83%FF%DC%97%FF%DE%9D%FF%E7%B8%FF%CCl%7BQ%13%80U%15%82W%16%81U%16%89%5B%18%87%5B%18%8C%5E%1A%94d%1D%C5%83-%C9%87%2F%C6%84.%C6%85.%CD%8B2%C9%871%CB%8A3%CD%8B5%DC%98%3F%DF%9BB%E0%9CC%E1%A5U%CB%871%CF%8B5%D1%8D6%DB%97%40%DF%9AB%DD%99B%E3%B0p%E7%CC%AE%FF%FF%FF%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00%00!%F9%04%01%00%00%2F%00%2C%00%00%00%00%10%00%10%00%00%06a%C0%97pH%2C%1A%8FH%A1%ABTr%25%87%2B%04%82%F4%7C%B9X%91%08%CB%99%1C!%26%13%84*iJ9(%15G%CA%84%14%01%1A%97%0C%03%80%3A%9A%3E%81%84%3E%11%08%B1%8B%20%02%12%0F%18%1A%0F%0A%03'F%1C%04%0B%10%16%18%10%0B%05%1CF%1D-%06%07%9A%9A-%1EG%1B%A0%A1%A0U%A4%A5%A6BA%00%3B\");\n" +
   "    background-repeat: no-repeat;\n" +
-  "    background-position: 4px center;\n" +
+  "    background-position: 2px center;\n" +
   "}\n" +
   "\n" +
   ".ace_editor .ace_sb {\n" +
@@ -25567,7 +26011,7 @@ define("text!ace/css/editor.css", [], "@import url(//fonts.googleapis.com/css?fa
   "\n" +
   ".ace_editor textarea {\n" +
   "    position: fixed;\n" +
-  "    z-index: 2000;\n" +
+  "    z-index: 0;\n" +
   "    width: 10px;\n" +
   "    height: 30px;\n" +
   "    opacity: 0;\n" +
@@ -25647,23 +26091,40 @@ define("text!ace/css/editor.css", [], "@import url(//fonts.googleapis.com/css?fa
   "}\n" +
   "\n" +
   ".ace_line .ace_fold {\n" +
+  "    box-sizing: border-box;\n" +
+  "    -moz-box-sizing: border-box;\n" +
+  "    -webkit-box-sizing: border-box;\n" +
+  "    \n" +
+  "    display: inline-block;\n" +
+  "    height: 11px;\n" +
+  "    margin-top: -2px;\n" +
+  "    vertical-align: middle;\n" +
+  "\n" +
+  "    background-image: \n" +
+  "        url(\"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%11%00%00%00%09%08%06%00%00%00%D4%E8%C7%0C%00%00%03%1EiCCPICC%20Profile%00%00x%01%85T%DFk%D3P%14%FE%DAe%9D%B0%E1%8B%3Ag%11%09%3Eh%91ndStC%9C%B6kW%BA%CDZ%EA6%B7!H%9B%A6m%5C%9A%C6%24%ED~%B0%07%D9%8Bo%3A%C5w%F1%07%3E%F9%07%0C%D9%83o%7B%92%0D%C6%14a%F8%AC%88%22L%F6%22%B3%9E%9B4M'S%03%B9%F7%BB%DF%F9%EE9'%E7%E4%5E%A0%F9qZ%D3%14%2F%0F%14USO%C5%C2%FC%C4%E4%14%DF%F2%01%5E%1CC%2B%FChM%8B%86%16J%26G%40%0F%D3%B2y%EF%B3%F3%0E%1E%C6lt%EEo%DF%AB%FEc%D5%9A%95%0C%11%F0%1C%20%BE%945%C4%22%E1Y%A0i%5C%D4t%13%E0%D6%89%EF%9D15%C2%CDLsX%A7%04%09%1Fg8oc%81%E1%8C%8D%23%96f45%40%9A%09%C2%07%C5B%3AK%B8%408%98i%E0%F3%0D%D8%CE%81%14%E4'%26%A9%92.%8B%3C%ABER%2F%E5dE%B2%0C%F6%F0%1Fs%83%F2_%B0%A8%94%E9%9B%AD%E7%10%8Dm%9A%19N%D1%7C%8A%DE%1F9%7Dp%8C%E6%00%D5%C1%3F_%18%BDA%B8%9DpX6%E3%A35~B%CD%24%AE%11%26%BD%E7%EEti%98%EDe%9A%97Y)%12%25%1C%24%BCbT%AE3li%E6%0B%03%89%9A%E6%D3%ED%F4P%92%B0%9F4%BF43Y%F3%E3%EDP%95%04%EB1%C5%F5%F6KF%F4%BA%BD%D7%DB%91%93%07%E35%3E%A7)%D6%7F%40%FE%BD%F7%F5r%8A%E5y%92%F0%EB%B4%1E%8D%D5%F4%5B%92%3AV%DB%DB%E4%CD%A6%23%C3%C4wQ%3F%03HB%82%8E%1Cd(%E0%91B%0Ca%9Ac%C4%AA%F8L%16%19%22J%A4%D2itTy%B28%D6%3B(%93%96%ED%1CGx%C9_%0E%B8%5E%16%F5%5B%B2%B8%F6%E0%FB%9E%DD%25%D7%8E%BC%15%85%C5%B7%A3%D8Q%ED%B5%81%E9%BA%B2%13%9A%1B%7Fua%A5%A3n%E17%B9%E5%9B%1Bm%AB%0B%08Q%FE%8A%E5%B1H%5Ee%CAO%82Q%D7u6%E6%90S%97%FCu%0B%CF2%94%EE%25v%12X%0C%BA%AC%F0%5E%F8*l%0AO%85%17%C2%97%BF%D4%C8%CE%DE%AD%11%CB%80q%2C%3E%AB%9ES%CD%C6%EC%25%D2L%D2%EBd%B8%BF%8A%F5B%C6%18%F9%901CZ%9D%BE%24M%9C%8A9%F2%DAP%0B'%06w%82%EB%E6%E2%5C%2F%D7%07%9E%BB%CC%5D%E1%FA%B9%08%AD.r%23%8E%C2%17%F5E%7C!%F0%BE3%BE%3E_%B7o%88a%A7%DB%BE%D3d%EB%A31Z%EB%BB%D3%91%BA%A2%B1z%94%8F%DB'%F6%3D%8E%AA%13%19%B2%B1%BE%B1~V%08%2B%B4%A2cjJ%B3tO%00%03%25mN%97%F3%05%93%EF%11%84%0B%7C%88%AE-%89%8F%ABbW%90O%2B%0Ao%99%0C%5E%97%0CI%AFH%D9.%B0%3B%8F%ED%03%B6S%D6%5D%E6i_s9%F3*p%E9%1B%FD%C3%EB.7U%06%5E%19%C0%D1s.%17%A03u%E4%09%B0%7C%5E%2C%EB%15%DB%1F%3C%9E%B7%80%91%3B%DBc%AD%3Dma%BA%8B%3EV%AB%DBt.%5B%1E%01%BB%0F%AB%D5%9F%CF%AA%D5%DD%E7%E4%7F%0Bx%A3%FC%06%A9%23%0A%D6%C2%A1_2%00%00%00%09pHYs%00%00%0B%13%00%00%0B%13%01%00%9A%9C%18%00%00%00%B5IDAT(%15%A5%91%3D%0E%02!%10%85ac%E1%05%D6%CE%D6%C6%CE%D2%E8%ED%CD%DE%C0%C6%D6N.%E0V%F8%3D%9Ca%891XH%C2%BE%D9y%3F%90!%E6%9C%C3%BFk%E5%011%C6-%F5%C8N%04%DF%BD%FF%89%DFt%83DN%60%3E%F3%AB%A0%DE%1A%5Dg%BE%10Q%97%1B%40%9C%A8o%10%8F%5E%828%B4%1B%60%87%F6%02%26%85%1Ch%1E%C1%2B%5Bk%FF%86%EE%B7j%09%9A%DA%9B%ACe%A3%F9%EC%DA!9%B4%D5%A6%81%86%86%98%CC%3C%5B%40%FA%81%B3%E9%CB%23%94%C16Azo%05%D4%E1%C1%95a%3B%8A'%A0%E8%CC%17%22%85%1D%BA%00%A2%FA%DC%0A%94%D1%D1%8D%8B%3A%84%17B%C7%60%1A%25Z%FC%8D%00%00%00%00IEND%AEB%60%82\"),\n" +
+  "        url(\"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%05%00%00%007%08%06%00%00%00%C4%DD%80C%00%00%03%1EiCCPICC%20Profile%00%00x%01%85T%DFk%D3P%14%FE%DAe%9D%B0%E1%8B%3Ag%11%09%3Eh%91ndStC%9C%B6kW%BA%CDZ%EA6%B7!H%9B%A6m%5C%9A%C6%24%ED~%B0%07%D9%8Bo%3A%C5w%F1%07%3E%F9%07%0C%D9%83o%7B%92%0D%C6%14a%F8%AC%88%22L%F6%22%B3%9E%9B4M'S%03%B9%F7%BB%DF%F9%EE9'%E7%E4%5E%A0%F9qZ%D3%14%2F%0F%14USO%C5%C2%FC%C4%E4%14%DF%F2%01%5E%1CC%2B%FChM%8B%86%16J%26G%40%0F%D3%B2y%EF%B3%F3%0E%1E%C6lt%EEo%DF%AB%FEc%D5%9A%95%0C%11%F0%1C%20%BE%945%C4%22%E1Y%A0i%5C%D4t%13%E0%D6%89%EF%9D15%C2%CDLsX%A7%04%09%1Fg8oc%81%E1%8C%8D%23%96f45%40%9A%09%C2%07%C5B%3AK%B8%408%98i%E0%F3%0D%D8%CE%81%14%E4'%26%A9%92.%8B%3C%ABER%2F%E5dE%B2%0C%F6%F0%1Fs%83%F2_%B0%A8%94%E9%9B%AD%E7%10%8Dm%9A%19N%D1%7C%8A%DE%1F9%7Dp%8C%E6%00%D5%C1%3F_%18%BDA%B8%9DpX6%E3%A35~B%CD%24%AE%11%26%BD%E7%EEti%98%EDe%9A%97Y)%12%25%1C%24%BCbT%AE3li%E6%0B%03%89%9A%E6%D3%ED%F4P%92%B0%9F4%BF43Y%F3%E3%EDP%95%04%EB1%C5%F5%F6KF%F4%BA%BD%D7%DB%91%93%07%E35%3E%A7)%D6%7F%40%FE%BD%F7%F5r%8A%E5y%92%F0%EB%B4%1E%8D%D5%F4%5B%92%3AV%DB%DB%E4%CD%A6%23%C3%C4wQ%3F%03HB%82%8E%1Cd(%E0%91B%0Ca%9Ac%C4%AA%F8L%16%19%22J%A4%D2itTy%B28%D6%3B(%93%96%ED%1CGx%C9_%0E%B8%5E%16%F5%5B%B2%B8%F6%E0%FB%9E%DD%25%D7%8E%BC%15%85%C5%B7%A3%D8Q%ED%B5%81%E9%BA%B2%13%9A%1B%7Fua%A5%A3n%E17%B9%E5%9B%1Bm%AB%0B%08Q%FE%8A%E5%B1H%5Ee%CAO%82Q%D7u6%E6%90S%97%FCu%0B%CF2%94%EE%25v%12X%0C%BA%AC%F0%5E%F8*l%0AO%85%17%C2%97%BF%D4%C8%CE%DE%AD%11%CB%80q%2C%3E%AB%9ES%CD%C6%EC%25%D2L%D2%EBd%B8%BF%8A%F5B%C6%18%F9%901CZ%9D%BE%24M%9C%8A9%F2%DAP%0B'%06w%82%EB%E6%E2%5C%2F%D7%07%9E%BB%CC%5D%E1%FA%B9%08%AD.r%23%8E%C2%17%F5E%7C!%F0%BE3%BE%3E_%B7o%88a%A7%DB%BE%D3d%EB%A31Z%EB%BB%D3%91%BA%A2%B1z%94%8F%DB'%F6%3D%8E%AA%13%19%B2%B1%BE%B1~V%08%2B%B4%A2cjJ%B3tO%00%03%25mN%97%F3%05%93%EF%11%84%0B%7C%88%AE-%89%8F%ABbW%90O%2B%0Ao%99%0C%5E%97%0CI%AFH%D9.%B0%3B%8F%ED%03%B6S%D6%5D%E6i_s9%F3*p%E9%1B%FD%C3%EB.7U%06%5E%19%C0%D1s.%17%A03u%E4%09%B0%7C%5E%2C%EB%15%DB%1F%3C%9E%B7%80%91%3B%DBc%AD%3Dma%BA%8B%3EV%AB%DBt.%5B%1E%01%BB%0F%AB%D5%9F%CF%AA%D5%DD%E7%E4%7F%0Bx%A3%FC%06%A9%23%0A%D6%C2%A1_2%00%00%00%09pHYs%00%00%0B%13%00%00%0B%13%01%00%9A%9C%18%00%00%00%3AIDAT8%11c%FC%FF%FF%7F%18%03%1A%60%01%F2%3F%A0%891%80%04%FF%11-%F8%17%9BJ%E2%05%B1ZD%81v%26t%E7%80%F8%A3%82h%A12%1A%20%A3%01%02%0F%01%BA%25%06%00%19%C0%0D%AEF%D5%3ES%00%00%00%00IEND%AEB%60%82\");\n" +
+  "    background-repeat: no-repeat, repeat-x;\n" +
+  "    background-position: center center, top left;\n" +
+  "    color: transparent;\n" +
+  "\n" +
+  "    border: 1px solid black;\n" +
+  "    -moz-border-radius: 2px;\n" +
+  "    -webkit-border-radius: 2px;\n" +
+  "    border-radius: 2px;\n" +
+  "    \n" +
   "    cursor: pointer;\n" +
-  "    color: darkred;\n" +
-  "    -moz-outline-radius: 4px;\n" +
-  "    outline-radius: 4px;\n" +
-  "    border-radius: 4px;\n" +
-  "    outline: 1px solid #1C00FF;\n" +
-  "    outline-offset: -2px;\n" +
   "    pointer-events: auto;\n" +
   "}\n" +
   "\n" +
   ".ace_dark .ace_fold {\n" +
-  "    color: #E6E1DC;\n" +
-  "    outline-color: #FC6F09;\n" +
   "}\n" +
   "\n" +
   ".ace_fold:hover{\n" +
-  "    background: gold!important;\n" +
+  "    background-image: \n" +
+  "        url(\"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%11%00%00%00%09%08%06%00%00%00%D4%E8%C7%0C%00%00%03%1EiCCPICC%20Profile%00%00x%01%85T%DFk%D3P%14%FE%DAe%9D%B0%E1%8B%3Ag%11%09%3Eh%91ndStC%9C%B6kW%BA%CDZ%EA6%B7!H%9B%A6m%5C%9A%C6%24%ED~%B0%07%D9%8Bo%3A%C5w%F1%07%3E%F9%07%0C%D9%83o%7B%92%0D%C6%14a%F8%AC%88%22L%F6%22%B3%9E%9B4M'S%03%B9%F7%BB%DF%F9%EE9'%E7%E4%5E%A0%F9qZ%D3%14%2F%0F%14USO%C5%C2%FC%C4%E4%14%DF%F2%01%5E%1CC%2B%FChM%8B%86%16J%26G%40%0F%D3%B2y%EF%B3%F3%0E%1E%C6lt%EEo%DF%AB%FEc%D5%9A%95%0C%11%F0%1C%20%BE%945%C4%22%E1Y%A0i%5C%D4t%13%E0%D6%89%EF%9D15%C2%CDLsX%A7%04%09%1Fg8oc%81%E1%8C%8D%23%96f45%40%9A%09%C2%07%C5B%3AK%B8%408%98i%E0%F3%0D%D8%CE%81%14%E4'%26%A9%92.%8B%3C%ABER%2F%E5dE%B2%0C%F6%F0%1Fs%83%F2_%B0%A8%94%E9%9B%AD%E7%10%8Dm%9A%19N%D1%7C%8A%DE%1F9%7Dp%8C%E6%00%D5%C1%3F_%18%BDA%B8%9DpX6%E3%A35~B%CD%24%AE%11%26%BD%E7%EEti%98%EDe%9A%97Y)%12%25%1C%24%BCbT%AE3li%E6%0B%03%89%9A%E6%D3%ED%F4P%92%B0%9F4%BF43Y%F3%E3%EDP%95%04%EB1%C5%F5%F6KF%F4%BA%BD%D7%DB%91%93%07%E35%3E%A7)%D6%7F%40%FE%BD%F7%F5r%8A%E5y%92%F0%EB%B4%1E%8D%D5%F4%5B%92%3AV%DB%DB%E4%CD%A6%23%C3%C4wQ%3F%03HB%82%8E%1Cd(%E0%91B%0Ca%9Ac%C4%AA%F8L%16%19%22J%A4%D2itTy%B28%D6%3B(%93%96%ED%1CGx%C9_%0E%B8%5E%16%F5%5B%B2%B8%F6%E0%FB%9E%DD%25%D7%8E%BC%15%85%C5%B7%A3%D8Q%ED%B5%81%E9%BA%B2%13%9A%1B%7Fua%A5%A3n%E17%B9%E5%9B%1Bm%AB%0B%08Q%FE%8A%E5%B1H%5Ee%CAO%82Q%D7u6%E6%90S%97%FCu%0B%CF2%94%EE%25v%12X%0C%BA%AC%F0%5E%F8*l%0AO%85%17%C2%97%BF%D4%C8%CE%DE%AD%11%CB%80q%2C%3E%AB%9ES%CD%C6%EC%25%D2L%D2%EBd%B8%BF%8A%F5B%C6%18%F9%901CZ%9D%BE%24M%9C%8A9%F2%DAP%0B'%06w%82%EB%E6%E2%5C%2F%D7%07%9E%BB%CC%5D%E1%FA%B9%08%AD.r%23%8E%C2%17%F5E%7C!%F0%BE3%BE%3E_%B7o%88a%A7%DB%BE%D3d%EB%A31Z%EB%BB%D3%91%BA%A2%B1z%94%8F%DB'%F6%3D%8E%AA%13%19%B2%B1%BE%B1~V%08%2B%B4%A2cjJ%B3tO%00%03%25mN%97%F3%05%93%EF%11%84%0B%7C%88%AE-%89%8F%ABbW%90O%2B%0Ao%99%0C%5E%97%0CI%AFH%D9.%B0%3B%8F%ED%03%B6S%D6%5D%E6i_s9%F3*p%E9%1B%FD%C3%EB.7U%06%5E%19%C0%D1s.%17%A03u%E4%09%B0%7C%5E%2C%EB%15%DB%1F%3C%9E%B7%80%91%3B%DBc%AD%3Dma%BA%8B%3EV%AB%DBt.%5B%1E%01%BB%0F%AB%D5%9F%CF%AA%D5%DD%E7%E4%7F%0Bx%A3%FC%06%A9%23%0A%D6%C2%A1_2%00%00%00%09pHYs%00%00%0B%13%00%00%0B%13%01%00%9A%9C%18%00%00%00%B5IDAT(%15%A5%91%3D%0E%02!%10%85ac%E1%05%D6%CE%D6%C6%CE%D2%E8%ED%CD%DE%C0%C6%D6N.%E0V%F8%3D%9Ca%891XH%C2%BE%D9y%3F%90!%E6%9C%C3%BFk%E5%011%C6-%F5%C8N%04%DF%BD%FF%89%DFt%83DN%60%3E%F3%AB%A0%DE%1A%5Dg%BE%10Q%97%1B%40%9C%A8o%10%8F%5E%828%B4%1B%60%87%F6%02%26%85%1Ch%1E%C1%2B%5Bk%FF%86%EE%B7j%09%9A%DA%9B%ACe%A3%F9%EC%DA!9%B4%D5%A6%81%86%86%98%CC%3C%5B%40%FA%81%B3%E9%CB%23%94%C16Azo%05%D4%E1%C1%95a%3B%8A'%A0%E8%CC%17%22%85%1D%BA%00%A2%FA%DC%0A%94%D1%D1%8D%8B%3A%84%17B%C7%60%1A%25Z%FC%8D%00%00%00%00IEND%AEB%60%82\"),\n" +
+  "        url(\"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%05%00%00%007%08%06%00%00%00%C4%DD%80C%00%00%03%1EiCCPICC%20Profile%00%00x%01%85T%DFk%D3P%14%FE%DAe%9D%B0%E1%8B%3Ag%11%09%3Eh%91ndStC%9C%B6kW%BA%CDZ%EA6%B7!H%9B%A6m%5C%9A%C6%24%ED~%B0%07%D9%8Bo%3A%C5w%F1%07%3E%F9%07%0C%D9%83o%7B%92%0D%C6%14a%F8%AC%88%22L%F6%22%B3%9E%9B4M'S%03%B9%F7%BB%DF%F9%EE9'%E7%E4%5E%A0%F9qZ%D3%14%2F%0F%14USO%C5%C2%FC%C4%E4%14%DF%F2%01%5E%1CC%2B%FChM%8B%86%16J%26G%40%0F%D3%B2y%EF%B3%F3%0E%1E%C6lt%EEo%DF%AB%FEc%D5%9A%95%0C%11%F0%1C%20%BE%945%C4%22%E1Y%A0i%5C%D4t%13%E0%D6%89%EF%9D15%C2%CDLsX%A7%04%09%1Fg8oc%81%E1%8C%8D%23%96f45%40%9A%09%C2%07%C5B%3AK%B8%408%98i%E0%F3%0D%D8%CE%81%14%E4'%26%A9%92.%8B%3C%ABER%2F%E5dE%B2%0C%F6%F0%1Fs%83%F2_%B0%A8%94%E9%9B%AD%E7%10%8Dm%9A%19N%D1%7C%8A%DE%1F9%7Dp%8C%E6%00%D5%C1%3F_%18%BDA%B8%9DpX6%E3%A35~B%CD%24%AE%11%26%BD%E7%EEti%98%EDe%9A%97Y)%12%25%1C%24%BCbT%AE3li%E6%0B%03%89%9A%E6%D3%ED%F4P%92%B0%9F4%BF43Y%F3%E3%EDP%95%04%EB1%C5%F5%F6KF%F4%BA%BD%D7%DB%91%93%07%E35%3E%A7)%D6%7F%40%FE%BD%F7%F5r%8A%E5y%92%F0%EB%B4%1E%8D%D5%F4%5B%92%3AV%DB%DB%E4%CD%A6%23%C3%C4wQ%3F%03HB%82%8E%1Cd(%E0%91B%0Ca%9Ac%C4%AA%F8L%16%19%22J%A4%D2itTy%B28%D6%3B(%93%96%ED%1CGx%C9_%0E%B8%5E%16%F5%5B%B2%B8%F6%E0%FB%9E%DD%25%D7%8E%BC%15%85%C5%B7%A3%D8Q%ED%B5%81%E9%BA%B2%13%9A%1B%7Fua%A5%A3n%E17%B9%E5%9B%1Bm%AB%0B%08Q%FE%8A%E5%B1H%5Ee%CAO%82Q%D7u6%E6%90S%97%FCu%0B%CF2%94%EE%25v%12X%0C%BA%AC%F0%5E%F8*l%0AO%85%17%C2%97%BF%D4%C8%CE%DE%AD%11%CB%80q%2C%3E%AB%9ES%CD%C6%EC%25%D2L%D2%EBd%B8%BF%8A%F5B%C6%18%F9%901CZ%9D%BE%24M%9C%8A9%F2%DAP%0B'%06w%82%EB%E6%E2%5C%2F%D7%07%9E%BB%CC%5D%E1%FA%B9%08%AD.r%23%8E%C2%17%F5E%7C!%F0%BE3%BE%3E_%B7o%88a%A7%DB%BE%D3d%EB%A31Z%EB%BB%D3%91%BA%A2%B1z%94%8F%DB'%F6%3D%8E%AA%13%19%B2%B1%BE%B1~V%08%2B%B4%A2cjJ%B3tO%00%03%25mN%97%F3%05%93%EF%11%84%0B%7C%88%AE-%89%8F%ABbW%90O%2B%0Ao%99%0C%5E%97%0CI%AFH%D9.%B0%3B%8F%ED%03%B6S%D6%5D%E6i_s9%F3*p%E9%1B%FD%C3%EB.7U%06%5E%19%C0%D1s.%17%A03u%E4%09%B0%7C%5E%2C%EB%15%DB%1F%3C%9E%B7%80%91%3B%DBc%AD%3Dma%BA%8B%3EV%AB%DBt.%5B%1E%01%BB%0F%AB%D5%9F%CF%AA%D5%DD%E7%E4%7F%0Bx%A3%FC%06%A9%23%0A%D6%C2%A1_2%00%00%00%09pHYs%00%00%0B%13%00%00%0B%13%01%00%9A%9C%18%00%00%003IDAT8%11c%FC%FF%FF%7F%3E%03%1A%60%01%F2%3F%A3%891%80%04%FFQ%26%F8w%C0%B43%A1%DB%0C%E2%8F%0A%A2%85%CAh%80%8C%06%08%3C%04%E8%96%18%00%A3S%0D%CD%CF%D8%C1%9D%00%00%00%00IEND%AEB%60%82\");\n" +
+  "    background-repeat: no-repeat, repeat-x;\n" +
+  "    background-position: center center, top left;\n" +
   "}\n" +
   "\n" +
   ".ace_dragging .ace_content {\n" +
@@ -25671,39 +26132,71 @@ define("text!ace/css/editor.css", [], "@import url(//fonts.googleapis.com/css?fa
   "}\n" +
   "\n" +
   ".ace_folding-enabled .ace_gutter-cell {\n" +
-  "    padding-right: 9px!important;\n" +
+  "    padding-right: 13px;\n" +
   "}\n" +
   "\n" +
   ".ace_fold-widget {\n" +
-  "    margin-right: -9px;\n" +
+  "    box-sizing: border-box;\n" +
+  "    -moz-box-sizing: border-box;\n" +
+  "    -webkit-box-sizing: border-box;\n" +
+  "\n" +
+  "    margin: 0 -12px 1px 1px;\n" +
   "    display: inline-block;\n" +
-  "    height: 9px;\n" +
-  "    width: 9px;\n" +
-  "    background: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJCAYAAADgkQYQAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAEnQAABJ0Ad5mH3gAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCB2My41Ljg3O4BdAAAAbUlEQVQoU2NgoBqIiIibCcRn0tPzbufmlt4uKam+XVXVdLuhoeN2UVHlGSCeCbYsMTHjdlxcSjOyzSB+a2vvbbhYXV2rGsgkoIQvSBBEg0wCiaM4GSQAsg5kAsg6DAUw1SAJkJtwKkBWSFaoAADKrzXSD2pEpgAAAABJRU5ErkJggg==\") no-repeat;\n" +
-  "    background-origin: content-box;\n" +
-  "    padding: 1px 0;\n" +
+  "    height: 14px;\n" +
+  "    width: 11px;\n" +
+  "    vertical-align: text-bottom;\n" +
+  "    \n" +
+  "    background-image: url(\"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%05%00%00%00%05%08%06%00%00%00%8Do%26%E5%00%00%004IDATx%DAe%8A%B1%0D%000%0C%C2%F2%2CK%96%BC%D0%8F9%81%88H%E9%D0%0E%96%C0%10%92%3E%02%80%5E%82%E4%A9*-%EEsw%C8%CC%11%EE%96w%D8%DC%E9*Eh%0C%151(%00%00%00%00IEND%AEB%60%82\");\n" +
+  "    background-repeat: no-repeat;\n" +
+  "    background-position: center 5px;\n" +
+  "\n" +
+  "    border-radius: 3px;\n" +
   "}\n" +
   "\n" +
-  ".ace_fold-widget.end{\n" +
-  "    transform: scaleY(-1);\n" +
-  "    -moz-transform: scaleY(-1);\n" +
-  "    -webkit-transform: scaleY(-1);\n" +
-  "    opacity:0.8;\n" +
+  ".ace_fold-widget.end {\n" +
+  "    background-image: url(\"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%05%00%00%00%05%08%06%00%00%00%8Do%26%E5%00%00%004IDATx%DAm%C7%C1%09%000%08C%D1%8C%ECE%C8E(%8E%EC%02)%1EZJ%F1%C1'%04%07I%E1%E5%EE%CAL%F5%A2%99%99%22%E2%D6%1FU%B5%FE0%D9x%A7%26Wz5%0E%D5%00%00%00%00IEND%AEB%60%82\");\n" +
   "}\n" +
   "\n" +
-  ".ace_fold-widget.closed{\n" +
-  "    -moz-transform: none;\n" +
-  "    -webkit-transform: none;\n" +
-  "    background-image: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJBAMAAAASvxsjAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAC1QTFRF////fn6FXl5kXl5kWFhecnJ5WFhecnJ5YWFoZ2dubW11dHR7enqCgICIhYWNjO3uwQAAAA90Uk5TACZNg5mZzMzb29vb29vbP7t0EwAAACtJREFUCFtjYAhgAIE6ARB5+SKIPKAD4mxg3ggkF2iB2JMngsQzwGocgBgA2zEHmb0961QAAAAASUVORK5CYII=\");\n" +
+  ".ace_fold-widget.closed {\n" +
+  "    background-image: url(\"data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%03%00%00%00%06%08%06%00%00%00%06%E5%24%0C%00%00%009IDATx%DA5%CA%C1%09%000%08%03%C0%AC*(%3E%04%C1%0D%BA%B1%23%A4Uh%E0%20%81%C0%CC%F8%82%81%AA%A2%AArGfr%88%08%11%11%1C%DD%7D%E0%EE%5B%F6%F6%CB%B8%05Q%2F%E9tai%D9%00%00%00%00IEND%AEB%60%82\");\n" +
   "}\n" +
   "\n" +
   ".ace_fold-widget:hover {\n" +
-  "    background-image: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJCAYAAADgkQYQAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAAEnQAABJ0Ad5mH3gAAAAZdEVYdFNvZnR3YXJlAFBhaW50Lk5FVCB2My41Ljg3O4BdAAAASklEQVQoU2NgoBqQWHFlJhD/lzny/TY6BomD5MGWgSQPvPj5H4bXP4GwQeJw1wA5augKoaaqoTgZWSFWBTDVMIUgGq+nCSrApRsAuCZYT+KbmI0AAAAASUVORK5CYII=\");\n" +
+  "    border: 1px solid rgba(0, 0, 0, 0.3);\n" +
+  "    background-color: rgba(255, 255, 255, 0.2);\n" +
+  "    -moz-box-shadow:inset 0 1px 1px rgba(255, 255, 255, 0.7);\n" +
+  "    -moz-box-shadow: 0 1px 1px rgba(255, 255, 255, 0.7);\n" +
+  "    -webkit-box-shadow:inset 0 1px 1px rgba(255, 255, 255, 0.7);\n" +
+  "    -webkit-box-shadow: 0 1px 1px rgba(255, 255, 255, 0.7);\n" +
+  "    box-shadow:inset 0 1px 1px rgba(255, 255, 255, 0.7);\n" +
+  "    box-shadow: 0 1px 1px rgba(255, 255, 255, 0.7);\n" +
+  "    background-position: center 4px;\n" +
   "}\n" +
   "\n" +
-  ".ace_fold-widget.closed:hover {\n" +
-  "    background-image: url(\"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJBAMAAAASvxsjAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAABVQTFRF////HMT3GKjUHMT3GKjUr+T5wOj5rFcpYAAAAAR0Uk5TACaZ2z7RZscAAAAkSURBVAhbY2BQYAABZwEQaWYIIk2TQRyzNBDHDMI2RKgBqQcAaNgD0/oixWYAAAAASUVORK5CYII=\");\n" +
+  ".ace_fold-widget:active {\n" +
+  "    border: 1px solid rgba(0, 0, 0, 0.4);\n" +
+  "    background-color: rgba(0, 0, 0, 0.05);\n" +
+  "    -moz-box-shadow:inset 0 1px 1px rgba(255, 255, 255);\n" +
+  "    -moz-box-shadow: 0 1px 1px rgba(255, 255, 255, 0.8);\n" +
+  "    -webkit-box-shadow:inset 0 1px 1px rgba(255, 255, 255);\n" +
+  "    -webkit-box-shadow: 0 1px 1px rgba(255, 255, 255, 0.8);\n" +
+  "    box-shadow:inset 0 1px 1px rgba(255, 255, 255);\n" +
+  "    box-shadow: 0 1px 1px rgba(255, 255, 255, 0.8);\n" +
   "}\n" +
   "\n" +
+  ".ace_fold-widget.invalid {\n" +
+  "    background-color: #FFB4B4;\n" +
+  "    border-color: #DE5555;\n" +
+  "}\n" +
   "");
 
+;
+            (function() {
+                window.require(["ace/ace"], function(a) {
+                    if (!window.ace)
+                        window.ace = {};
+                    for (var key in a) if (a.hasOwnProperty(key))
+                        ace[key] = a[key];
+                });
+            })();
+        

@@ -6,8 +6,10 @@ build:
 	
 	cp -r demo/kitchen-sink/styles.css build/demo/kitchen-sink/styles.css
 	cp demo/kitchen-sink/logo.png build/demo/kitchen-sink/logo.png
+	cp -r doc/site/images build/textarea
 	
 	./Makefile.dryice.js normal
+	./Makefile.dryice.js demo
 	./Makefile.dryice.js bm
 
 clean:
